@@ -65,6 +65,37 @@ class Area:
         return (min(lons), min(lats), max(lons), max(lats))
 
 
+@dataclass(frozen=True)
+class Square:
+    """A square given directly in UTM metres (used for grid tiles).
+
+    Duck-types the parts of `Area` that fetch/normalise use: `name`, `core`,
+    `fetch`, `wgs_bbox()` and `centre_utm`.
+    """
+
+    name: str
+    core: tuple[float, float, float, float]
+    buffer_m: float
+
+    @property
+    def size_m(self) -> float:
+        return self.core[2] - self.core[0]
+
+    @property
+    def centre_utm(self) -> tuple[float, float]:
+        return ((self.core[0] + self.core[2]) / 2, (self.core[1] + self.core[3]) / 2)
+
+    @property
+    def fetch(self) -> tuple[float, float, float, float]:
+        b = self.buffer_m
+        return (self.core[0] - b, self.core[1] - b, self.core[2] + b, self.core[3] + b)
+
+    def wgs_bbox(self) -> tuple[float, float, float, float]:
+        min_e, min_n, max_e, max_n = self.fetch
+        corners = [to_wgs(e, n) for e in (min_e, max_e) for n in (min_n, max_n)]
+        return (min(c[0] for c in corners), min(c[1] for c in corners), max(c[0] for c in corners), max(c[1] for c in corners))
+
+
 # The approved coverage (decision D1): 5 km square centred on the Cyber Towers junction.
 HITEC_CITY = Area("hitec-city", 17.4507, 78.3801, 5000.0, 150.0)
 

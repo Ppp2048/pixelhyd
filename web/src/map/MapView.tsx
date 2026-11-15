@@ -54,6 +54,21 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
         : artToLngLat(p, meta.centre.art_px[0], meta.centre.art_px[1])
     const native = nativeZoom(p)
 
+    // Overlay: vector tiles for the tiled map (loads only what is in view), one GeoJSON for the prototypes.
+    const vector = meta.overlay?.type === 'vector'
+    const overlaySource: maplibregl.SourceSpecification = vector
+      ? { type: 'vector', url: `pmtiles://${origin}${dataset.base}/${meta.overlay!.url}` }
+      : { type: 'geojson', data: `${dataset.base}/overlay.geojson` }
+    const gridSource: maplibregl.SourceSpecification = vector
+      ? { type: 'geojson', data: `${dataset.base}/${meta.overlay!.grid}` }
+      : overlaySource
+    // Where a feature class lives: a vector source layer, or a `layer` property in the GeoJSON.
+    const ov = (name: string) =>
+      (vector
+        ? { source: 'overlay', 'source-layer': name }
+        : { source: 'overlay', filter: ['==', ['get', 'layer'], name] }) as Record<string, unknown>
+    const grid = vector ? 'grid' : 'overlay'
+
     const map = new maplibregl.Map({
       container: container.current,
       center: centre,
@@ -73,40 +88,49 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
         version: 8,
         sources: {
           art: { type: 'raster', url: `pmtiles://${origin}${dataset.base}/art.pmtiles`, tileSize: 256 },
-          overlay: { type: 'geojson', data: `${dataset.base}/overlay.geojson` },
+          overlay: overlaySource,
+          ...(vector ? { grid: gridSource } : {}),
         },
         layers: [
           { id: 'paper', type: 'background', paint: { 'background-color': '#efe6d3' } },
           { id: 'art', type: 'raster', source: 'art', paint: { 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } },
           {
-            id: 'core', type: 'line', source: 'overlay', filter: ['==', ['get', 'layer'], 'core'],
+            id: 'core', type: 'line', source: grid, filter: ['==', ['get', 'layer'], 'core'],
             paint: { 'line-color': '#7a6a52', 'line-width': 1, 'line-dasharray': [3, 3], 'line-opacity': 0.6 },
           },
+          // Generation grid (tiled datasets only): completed tiles solid, the rest dashed.
           {
-            id: 'roads-debug', type: 'line', source: 'overlay', filter: ['==', ['get', 'layer'], 'road_centreline'],
+            id: 'tiles-pending', type: 'line', source: grid,
+            filter: ['all', ['==', ['get', 'layer'], 'tile'], ['!', ['in', ['get', 'status'], ['literal', ['rendered', 'validated']]]]],
+            paint: { 'line-color': '#9b8f78', 'line-width': 1, 'line-dasharray': [2, 3], 'line-opacity': 0.8 },
+          },
+          {
+            id: 'tiles-done', type: 'line', source: grid,
+            filter: ['all', ['==', ['get', 'layer'], 'tile'], ['in', ['get', 'status'], ['literal', ['rendered', 'validated']]]],
+            paint: { 'line-color': '#2f7d4f', 'line-width': 1.5, 'line-opacity': 0.7 },
+          },
+          {
+            id: 'roads-debug', type: 'line', ...ov('road_centreline'),
             layout: { visibility: 'none' }, paint: { 'line-color': '#e0249a', 'line-width': 1.5 },
           },
+          { id: 'buildings-hit', type: 'fill', ...ov('building'), paint: { 'fill-color': '#000', 'fill-opacity': 0 } },
           {
-            id: 'buildings-hit', type: 'fill', source: 'overlay', filter: ['==', ['get', 'layer'], 'building'],
-            paint: { 'fill-color': '#000', 'fill-opacity': 0 },
-          },
-          {
-            id: 'buildings-hover', type: 'line', source: 'overlay', filter: NO_MATCH as unknown as maplibregl.FilterSpecification,
+            id: 'buildings-hover', type: 'line', ...ov('building'), filter: NO_MATCH as unknown as maplibregl.FilterSpecification,
             paint: { 'line-color': '#ffd166', 'line-width': 2 },
           },
           {
-            id: 'buildings-selected-fill', type: 'fill', source: 'overlay', filter: NO_MATCH as unknown as maplibregl.FilterSpecification,
+            id: 'buildings-selected-fill', type: 'fill', ...ov('building'), filter: NO_MATCH as unknown as maplibregl.FilterSpecification,
             paint: { 'fill-color': '#ff7a33', 'fill-opacity': 0.18 },
           },
           {
-            id: 'buildings-selected', type: 'line', source: 'overlay', filter: NO_MATCH as unknown as maplibregl.FilterSpecification,
+            id: 'buildings-selected', type: 'line', ...ov('building'), filter: NO_MATCH as unknown as maplibregl.FilterSpecification,
             paint: { 'line-color': '#ff6a1f', 'line-width': 2.5 },
           },
           {
-            id: 'pois', type: 'circle', source: 'overlay', filter: ['==', ['get', 'layer'], 'poi'],
+            id: 'pois', type: 'circle', ...ov('poi'),
             paint: { 'circle-radius': 4, 'circle-color': '#2b7a78', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 },
           },
-        ],
+        ] as maplibregl.LayerSpecification[],
       },
     })
     map.touchZoomRotate.disableRotation()
@@ -151,13 +175,23 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
     window.addEventListener('popstate', onPop)
 
     // Restore a selected building from the URL once the overlay has loaded.
-    map.once('load', async () => {
-      if (!url.building) return
-      type Feature = { properties: Record<string, unknown> | null }
-      const data = (await (map.getSource('overlay') as GeoJSONSource).getData()) as unknown as { features: Feature[] }
-      const f = data.features.find((x: Feature) => x.properties?.layer === 'building' && x.properties?.id === url.building)
-      if (f) selectRef.current(f.properties as unknown as BuildingProps)
-    })
+    if (url.building) {
+      const id = url.building
+      if (vector) {
+        // Vector tiles only hold what is loaded; a shared view is centred on the building, so it is.
+        map.once('idle', () => {
+          const f = map.querySourceFeatures('overlay', { sourceLayer: 'building', filter: ['==', ['get', 'id'], id] })[0]
+          if (f) selectRef.current(f.properties as unknown as BuildingProps)
+        })
+      } else {
+        map.once('load', async () => {
+          type Feature = { properties: Record<string, unknown> | null }
+          const data = (await (map.getSource('overlay') as GeoJSONSource).getData()) as unknown as { features: Feature[] }
+          const f = data.features.find((x: Feature) => x.properties?.layer === 'building' && x.properties?.id === id)
+          if (f) selectRef.current(f.properties as unknown as BuildingProps)
+        })
+      }
+    }
 
     return () => {
       window.removeEventListener('popstate', onPop)

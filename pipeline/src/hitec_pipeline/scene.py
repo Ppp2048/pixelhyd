@@ -113,15 +113,21 @@ def _shadow_of(poly: Polygon, height: float, z_base: float = 0.0) -> Polygon:
 
 
 # ---------------------------------------------------------------- builders
-def _buildings(gdf: gpd.GeoDataFrame, core: Polygon, proj: IsoProjection, scene: Scene, shadows: list) -> None:
+def _buildings(gdf: gpd.GeoDataFrame, core: Polygon, proj: IsoProjection, scene: Scene, shadows: list,
+               owns=None, shadow_all: bool = True) -> None:
+    """Add drawable buildings. `owns(row)` decides which buildings this scene draws
+    (default: representative point inside `core`); `shadow_all` also casts shadows
+    of buildings that are not drawn (prototype behaviour)."""
     for row in gdf.itertuples():
         poly: Polygon = row.geometry
         if not isinstance(poly, Polygon) or poly.is_empty:
             continue
         h = float(row.height_m)
-        shadows.append(_shadow_of(poly, h))
-        if not core.contains(poly.representative_point()):
-            continue  # outside the core: only its shadow matters
+        draw = owns(row) if owns else core.contains(poly.representative_point())
+        if draw or shadow_all:
+            shadows.append(_shadow_of(poly, h))
+        if not draw:
+            continue  # not drawn here: at most its shadow matters
         family = S.use_family(row.use or "")
         options = S.FACADES_BY_USE[family]
         wall_hex, roof_hex = options[int(seeded_unit(row.id, "facade") * len(options))]
@@ -146,7 +152,8 @@ def _buildings(gdf: gpd.GeoDataFrame, core: Polygon, proj: IsoProjection, scene:
         scene.objects.append(Obj(depth, row.id, _bounds_px(proj, ring, 0, h + 3), b))
 
 
-def _elevated(lines: gpd.GeoDataFrame, kind: str, core: Polygon, proj: IsoProjection, scene: Scene, shadows: list) -> None:
+def _elevated(lines: gpd.GeoDataFrame, kind: str, core: Polygon, proj: IsoProjection, scene: Scene, shadows: list,
+              shadow_all: bool = True) -> None:
     """Split elevated ways into short deck pieces with a ramp where a way doesn't continue."""
     if lines is None or lines.empty:
         return
@@ -176,9 +183,10 @@ def _elevated(lines: gpd.GeoDataFrame, kind: str, core: Polygon, proj: IsoProjec
             deck = piece.buffer(w / 2, cap_style="flat", join_style="mitre")
             if deck.is_empty or not isinstance(deck, Polygon):
                 continue
-            if z > 0.5:
+            drawn = core.intersects(deck)
+            if z > 0.5 and (drawn or shadow_all):
                 shadows.append(_shadow_of(deck, 0.0, z))
-            if not core.intersects(deck):
+            if not drawn:
                 continue
             ring = _ring(deck)
             coords = np.asarray(piece.coords)
@@ -242,14 +250,35 @@ def _trees(areas: gpd.GeoDataFrame | None, pois: gpd.GeoDataFrame | None, core: 
         scene.objects.append(Obj(e + n, f"t{key}", _bounds_px(proj, ring, 0, t.height + r), t))
 
 
+LAYERS = ("buildings", "roads", "rail", "areas", "pois")
+
+
+def read_layers(features: Path) -> dict[str, gpd.GeoDataFrame]:
+    import pyogrio
+
+    present = set(pyogrio.list_layers(features)[:, 0])
+    return {name: gpd.read_file(features, layer=name) for name in LAYERS if name in present}
+
+
 def build_scene(area: Area, features: Path, k: float) -> Scene:
-    layers = {name: gpd.read_file(features, layer=name) for name in ("buildings", "roads", "rail", "areas", "pois")
-              if name in __import__("pyogrio").list_layers(features)[:, 0]}
+    """Single-area scene with a projection fitted to the area (the prototype)."""
+    layers = read_layers(features)
     buildings = layers["buildings"]
     core = box(*area.core)
     in_core = buildings[buildings.representative_point().within(core)]
     max_h = float(in_core["height_m"].max()) if len(in_core) else 30.0
     proj = IsoProjection.for_square(area.core, k, max_h + 6)
+    return build_scene_from_layers(layers, proj, core)
+
+
+def build_scene_from_layers(layers: dict, proj: IsoProjection, core, owns=None, shadow_all: bool = True) -> Scene:
+    """Scene for any region `core` (Polygon/MultiPolygon in UTM metres) in a given projection.
+
+    Used by the prototype (fitted projection, defaults) and by the tile grid
+    (one global projection, explicit building ownership, shadows only from
+    drawn features so partial maps never show shadows of missing buildings).
+    """
+    buildings = layers["buildings"]
     scene = Scene(proj, core)
     shadows: list = []
 
@@ -292,12 +321,12 @@ def build_scene(area: Area, features: Path, k: float) -> Scene:
                         c = np.asarray(seg.coords)
                         scene.markings.append(np.array([c[0], c[-1]]))
         bridges = roads[roads["bridge"].astype(bool)]
-        _elevated(bridges, "road", core, proj, scene, shadows)
+        _elevated(bridges, "road", core, proj, scene, shadows, shadow_all)
     rail = layers.get("rail")
     if rail is not None:
-        _elevated(rail[rail["bridge"].astype(bool)], "rail", core, proj, scene, shadows)
+        _elevated(rail[rail["bridge"].astype(bool)], "rail", core, proj, scene, shadows, shadow_all)
 
-    _buildings(buildings, core, proj, scene, shadows)
+    _buildings(buildings, core, proj, scene, shadows, owns, shadow_all)
     _trees(areas, layers.get("pois"), core, proj, scene)
 
     scene.shadow = unary_union(shadows).intersection(core) if shadows else None

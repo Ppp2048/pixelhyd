@@ -9,6 +9,14 @@ DATA_ROOT = Path(__file__).resolve().parents[3] / "data"
 
 
 def main() -> None:
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "tiles":  # tile-grid commands: index | status | next | run | mark-stale
+        from .tiles import cli
+
+        cli(sys.argv[2:])
+        return
+
     from .area import AREAS
 
     parser = argparse.ArgumentParser(prog="hitec-pipeline")

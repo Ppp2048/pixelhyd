@@ -34,7 +34,7 @@ export default function App() {
       <header className="bar">
         <div className="brand">
           <strong>HITEC City</strong>
-          <span className="muted">isometric map · prototype</span>
+          <span className="muted">isometric map</span>
         </div>
         <div className="controls">
           <label>

@@ -261,8 +261,8 @@ def normalise(area: Area, data_root: Path) -> Path:
     if frames["roads"] is not None:
         report["road_width_sources"] = frames["roads"]["width_source"].value_counts().to_dict()
     manifest = raw / "manifest.json"
-    report["inputs"] = json.loads(manifest.read_text())["downloads"] if manifest.exists() else []
+    report["inputs"] = json.loads(manifest.read_text(encoding="utf-8"))["downloads"] if manifest.exists() else []
     for d in report["inputs"]:
         d.pop("query", None)
-    (out_dir / "report.json").write_text(json.dumps(report, indent=2, default=str))
+    (out_dir / "report.json").write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
     return out_dir

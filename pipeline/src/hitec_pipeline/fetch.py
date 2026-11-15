@@ -36,24 +36,26 @@ def _sha256(path: Path) -> str:
 
 
 def _record(manifest: Path, entry: dict) -> None:
-    data = json.loads(manifest.read_text()) if manifest.exists() else {"downloads": []}
+    data = json.loads(manifest.read_text(encoding="utf-8")) if manifest.exists() else {"downloads": []}
     data["downloads"] = [d for d in data["downloads"] if d["file"] != entry["file"]]
     data["downloads"].append(entry)
-    manifest.write_text(json.dumps(data, indent=2))
+    manifest.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
-def fetch_overture_buildings(area: Area, out_dir: Path) -> Path:
+def fetch_overture_buildings(area: Area, out_dir: Path, release: str | None = None) -> Path:
     west, south, east, north = area.wgs_bbox()
     out = out_dir / "overture_buildings.parquet"
     bbox = f"{west:.6f},{south:.6f},{east:.6f},{north:.6f}"
     exe = shutil.which("overturemaps", path=str(Path(sys.executable).parent))
     cmd = [exe or "overturemaps", "download", f"--bbox={bbox}", "-f", "geoparquet", "--type=building", "-o", str(out)]
+    if release:  # pin a release so every tile uses the same building IDs
+        cmd += ["--release", release]
     subprocess.run(cmd, check=True)
     _record(
         out_dir / "manifest.json",
         {
             "file": out.name,
-            "source": "Overture Maps Foundation — buildings theme (latest release via overturemaps CLI)",
+            "source": f"Overture Maps Foundation — buildings theme (release {release or 'latest'})",
             "licence": "ODbL 1.0 (per-feature sources listed in `sources`)",
             "query": " ".join(cmd[1:]),
             "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -117,9 +119,9 @@ out geom qt;"""
     return out
 
 
-def fetch_all(area: Area, data_root: Path) -> Path:
+def fetch_all(area: Area, data_root: Path, release: str | None = None) -> Path:
     out_dir = data_root / "raw" / area.name
     out_dir.mkdir(parents=True, exist_ok=True)
-    fetch_overture_buildings(area, out_dir)
+    fetch_overture_buildings(area, out_dir, release)
     fetch_osm(area, out_dir)
     return out_dir

@@ -29,6 +29,17 @@ npm install
 npm run dev        # http://localhost:5173
 npx vitest run
 ```
+
+### Full area, tile by tile
+The 5 km square is a 5 × 5 grid of 1 km tiles (`r0c0` south-west … `r4c4` north-east). Progress is kept in `data/tiles/hitec-city/index.json`.
+```bash
+uv run hitec-pipeline tiles status        # grid map of pending / validated / failed tiles and the next tile
+uv run hitec-pipeline tiles run           # generate the next tile (fetch → render → validate → publish)
+uv run hitec-pipeline tiles run r2c3      # a specific tile; completed tiles are skipped unless --force
+uv run hitec-pipeline tiles mark-stale r2c3 && uv run hitec-pipeline tiles run r2c3   # re-render without re-fetching
+```
+Tiles use one global projection and a pinned Overture release, so they join seamlessly; the app shows them as the "HITEC City · 5 km grid" dataset.
+
 `render` writes `art.pmtiles`, `overlay.geojson` and `meta.json` to `data/out/<area>-k<k>/` and copies them to `web/public/tiles/` for the app. The web app lists datasets in `web/src/types.ts` (`prototype-k4`, `prototype-k2`); render both values of `--k` or remove the one you don't need.
 
 ## How it works
