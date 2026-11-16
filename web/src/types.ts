@@ -9,8 +9,12 @@ export interface DatasetMeta {
   zoom: { min: number; max: number }
   attribution: string
   metrics: Record<string, unknown>
-  /** Present for the tiled map: overlay as vector tiles plus a small grid GeoJSON. */
-  overlay?: { type: 'vector'; url: string; grid: string; layers: string[]; minzoom: number; maxzoom: number }
+  /** Present for the tiled map: the interactive overlay as vector tiles. */
+  overlay?: { type: 'vector'; url: string; layers: string[]; minzoom: number; maxzoom: number }
+  /** Tiled map: file name of the current (versioned) art archive. */
+  art?: string
+  /** Tiled map: art-pixel box (x0, y0, x1, y1) of the whole city grid; may be negative. */
+  canvas?: [number, number, number, number]
 }
 
 export type HeightConfidence = 'verified' | 'derived' | 'modelled' | 'estimated'
@@ -36,7 +40,7 @@ export interface Dataset {
 }
 
 export const DATASETS: Dataset[] = [
-  { id: 'hitec-city-k4', label: 'HITEC City · 5 km grid', base: '/tiles/hitec-city-k4' },
+  { id: 'hitec-city-k4', label: 'Hyderabad · city grid', base: '/tiles/hitec-city-k4' },
   { id: 'prototype-k4', label: 'Prototype · 4 px/m', base: '/tiles/prototype-k4' },
   { id: 'prototype-k2', label: 'Prototype · 2 px/m', base: '/tiles/prototype-k2' },
 ]

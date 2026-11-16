@@ -66,12 +66,12 @@ def fetch_overture_buildings(area: Area, out_dir: Path, release: str | None = No
     return out
 
 
-def _overpass(query: str, attempts: int = 6) -> bytes:
+def _overpass(query: str, attempts: int = 6, timeout: int = 300) -> bytes:
     body = urllib.parse.urlencode({"data": query}).encode()
     for i in range(attempts):
         req = urllib.request.Request(OVERPASS_URL, data=body, headers={"User-Agent": USER_AGENT})
         try:
-            with urllib.request.urlopen(req, timeout=300) as r:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
                 data = r.read()
             if data.lstrip().startswith(b"{"):
                 return data
@@ -81,11 +81,11 @@ def _overpass(query: str, attempts: int = 6) -> bytes:
     raise RuntimeError("Overpass API unavailable after retries")
 
 
-def fetch_osm(area: Area, out_dir: Path) -> Path:
+def fetch_osm(area: Area, out_dir: Path, timeout: int = 180) -> Path:
     west, south, east, north = area.wgs_bbox()
     bb = f"({south:.6f},{west:.6f},{north:.6f},{east:.6f})"
     # Everything tagged that we may draw or inspect; geometry included.
-    query = f"""[out:json][timeout:180];
+    query = f"""[out:json][timeout:{timeout}];
 (
   way[building]{bb}; relation[building]{bb};
   way[highway]{bb};
@@ -99,7 +99,7 @@ def fetch_osm(area: Area, out_dir: Path) -> Path:
   way["man_made"]{bb};
 );
 out geom qt;"""
-    data = _overpass(query)
+    data = _overpass(query, timeout=timeout + 120)
     out = out_dir / "osm.json"
     out.write_bytes(data)
     base = json.loads(data).get("osm3s", {}).get("timestamp_osm_base")
@@ -119,9 +119,9 @@ out geom qt;"""
     return out
 
 
-def fetch_all(area: Area, data_root: Path, release: str | None = None) -> Path:
+def fetch_all(area: Area, data_root: Path, release: str | None = None, osm_timeout: int = 180) -> Path:
     out_dir = data_root / "raw" / area.name
     out_dir.mkdir(parents=True, exist_ok=True)
     fetch_overture_buildings(area, out_dir, release)
-    fetch_osm(area, out_dir)
+    fetch_osm(area, out_dir, osm_timeout)
     return out_dir

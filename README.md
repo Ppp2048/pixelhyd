@@ -30,15 +30,16 @@ npm run dev        # http://localhost:5173
 npx vitest run
 ```
 
-### Full area, tile by tile
-The 5 km square is a 5 × 5 grid of 1 km tiles (`r0c0` south-west … `r4c4` north-east). Progress is kept in `data/tiles/hitec-city/index.json`.
+### The city, tile by tile
+The map is a grid of 1 km tiles. The original 5 km square is `r0c0` (south-west) … `r4c4` (north-east); the grid keeps that alignment and grows ring by ring over the city box in `tiles.CITY_WSEN` (≈ the Outer Ring Road), so outer tiles have negative or larger ids such as `r-1c7`. Progress is kept in `data/tiles/hitec-city/index.json`.
 ```bash
-uv run hitec-pipeline tiles status        # grid map of pending / validated / failed tiles and the next tile
-uv run hitec-pipeline tiles run           # generate the next tile (fetch → render → validate → publish)
-uv run hitec-pipeline tiles run r2c3      # a specific tile; completed tiles are skipped unless --force
-uv run hitec-pipeline tiles mark-stale r2c3 && uv run hitec-pipeline tiles run r2c3   # re-render without re-fetching
+uv run hitec-pipeline tiles status                  # map of pending / validated / failed tiles
+uv run hitec-pipeline tiles batch --count 24        # the next 24 tiles outward, in parallel
+uv run hitec-pipeline tiles batch r-1c2 r-1c3       # specific tiles; validated ones are skipped unless --force
+uv run hitec-pipeline tiles batch r2c3 --rerender   # re-render without touching the tile's data
+uv run hitec-pipeline tiles run                     # just the next tile
 ```
-Tiles use one global projection and a pinned Overture release, so they join seamlessly; the app shows them as the "HITEC City · 5 km grid" dataset.
+`--workers N` sets the number of processes (default: CPU count − 2, at most 6; each needs ≈ 0.5 GB). Raw data is downloaded once per 5 km block (one Overpass and one Overture request for 25 tiles) and cut per tile. Rendering, overlays, the zoom pyramid and vector tiles run in parallel, and the archives are updated incrementally. Tiles use one global projection and a pinned Overture release, so they join seamlessly; the app shows them as the "Hyderabad · city grid" dataset.
 
 `render` writes `art.pmtiles`, `overlay.geojson` and `meta.json` to `data/out/<area>-k<k>/` and copies them to `web/public/tiles/` for the app. The web app lists datasets in `web/src/types.ts` (`prototype-k4`, `prototype-k2`); render both values of `--k` or remove the one you don't need.
 

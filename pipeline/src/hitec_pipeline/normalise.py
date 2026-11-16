@@ -19,6 +19,7 @@ from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
+import pandas as pd
 from shapely import make_valid
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import polygonize, unary_union
@@ -213,6 +214,12 @@ def _buildings(overture_path: Path, osm_tags: list[dict], report: dict) -> gpd.G
             "height_m": round(float(h), 1), "height_source": hsrc, "height_confidence": hconf,
             "area_m2": round(geom.area, 1), "geometry": geom,
         })
+    if not records:  # open land, water or farmland: no buildings at all, but the schema stays the same
+        report["overlaps_dropped"] = 0
+        cols = ["id", "osm_id", "footprint_source", "name", "name_te", "use", "levels", "height_m",
+                "height_source", "height_confidence", "area_m2"]
+        return gpd.GeoDataFrame({c: pd.Series(dtype="float64" if c in ("levels", "height_m", "area_m2") else "object")
+                                 for c in cols}, geometry=gpd.GeoSeries([], crs=UTM44N), crs=UTM44N)
     gdf = gpd.GeoDataFrame(records, geometry="geometry", crs=UTM44N)
     # Flag heavy overlaps (typically an ML footprint duplicating an OSM one): keep the higher-priority source.
     priority = {"OpenStreetMap": 0, "Esri Community Maps": 1, "Google Open Buildings": 2, "Microsoft ML Buildings": 3}

@@ -45,8 +45,12 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
     ensureProtocol()
     const p = meta.projection
     const origin = window.location.origin
-    const [west, north] = artToLngLat(p, -p.width * 0.25, -p.height * 0.25)
-    const [east, south] = artToLngLat(p, p.width * 1.25, p.height * 1.25)
+    // Pan limits: the whole city canvas (may extend to negative art px) plus a margin.
+    const [cx0, cy0, cx1, cy1] = meta.canvas ?? [0, 0, p.width, p.height]
+    const mx = (cx1 - cx0) * 0.1
+    const my = (cy1 - cy0) * 0.1
+    const [west, north] = artToLngLat(p, cx0 - mx, cy0 - my)
+    const [east, south] = artToLngLat(p, cx1 + mx, cy1 + my)
     const url = readUrl()
     const centre =
       url.lat !== undefined && url.lon !== undefined
@@ -59,15 +63,11 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
     const overlaySource: maplibregl.SourceSpecification = vector
       ? { type: 'vector', url: `pmtiles://${origin}${dataset.base}/${meta.overlay!.url}` }
       : { type: 'geojson', data: `${dataset.base}/overlay.geojson` }
-    const gridSource: maplibregl.SourceSpecification = vector
-      ? { type: 'geojson', data: `${dataset.base}/${meta.overlay!.grid}` }
-      : overlaySource
     // Where a feature class lives: a vector source layer, or a `layer` property in the GeoJSON.
     const ov = (name: string) =>
       (vector
         ? { source: 'overlay', 'source-layer': name }
         : { source: 'overlay', filter: ['==', ['get', 'layer'], name] }) as Record<string, unknown>
-    const grid = vector ? 'grid' : 'overlay'
 
     const map = new maplibregl.Map({
       container: container.current,
@@ -87,28 +87,13 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
       style: {
         version: 8,
         sources: {
-          art: { type: 'raster', url: `pmtiles://${origin}${dataset.base}/art.pmtiles`, tileSize: 256 },
+          art: { type: 'raster', url: `pmtiles://${origin}${dataset.base}/${meta.art ?? 'art.pmtiles'}`, tileSize: 256 },
           overlay: overlaySource,
-          ...(vector ? { grid: gridSource } : {}),
         },
         layers: [
           { id: 'paper', type: 'background', paint: { 'background-color': '#efe6d3' } },
           { id: 'art', type: 'raster', source: 'art', paint: { 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } },
-          {
-            id: 'core', type: 'line', source: grid, filter: ['==', ['get', 'layer'], 'core'],
-            paint: { 'line-color': '#7a6a52', 'line-width': 1, 'line-dasharray': [3, 3], 'line-opacity': 0.6 },
-          },
-          // Generation grid (tiled datasets only): completed tiles solid, the rest dashed.
-          {
-            id: 'tiles-pending', type: 'line', source: grid,
-            filter: ['all', ['==', ['get', 'layer'], 'tile'], ['!', ['in', ['get', 'status'], ['literal', ['rendered', 'validated']]]]],
-            paint: { 'line-color': '#9b8f78', 'line-width': 1, 'line-dasharray': [2, 3], 'line-opacity': 0.8 },
-          },
-          {
-            id: 'tiles-done', type: 'line', source: grid,
-            filter: ['all', ['==', ['get', 'layer'], 'tile'], ['in', ['get', 'status'], ['literal', ['rendered', 'validated']]]],
-            paint: { 'line-color': '#2f7d4f', 'line-width': 1.5, 'line-opacity': 0.7 },
-          },
+          // No area outline, generation grid or POI markers: the art stands on its own.
           {
             id: 'roads-debug', type: 'line', ...ov('road_centreline'),
             layout: { visibility: 'none' }, paint: { 'line-color': '#e0249a', 'line-width': 1.5 },
@@ -125,10 +110,6 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
           {
             id: 'buildings-selected', type: 'line', ...ov('building'), filter: NO_MATCH as unknown as maplibregl.FilterSpecification,
             paint: { 'line-color': '#ff6a1f', 'line-width': 2.5 },
-          },
-          {
-            id: 'pois', type: 'circle', ...ov('poi'),
-            paint: { 'circle-radius': 4, 'circle-color': '#2b7a78', 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 },
           },
         ] as maplibregl.LayerSpecification[],
       },
