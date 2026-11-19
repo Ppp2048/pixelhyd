@@ -30,6 +30,8 @@ npm run dev        # http://localhost:5173
 npx vitest run
 ```
 
+Search data comes from `uv run hitec-pipeline corporate` and `uv run hitec-pipeline places`. For production (tiles on a bucket, `npm run build`, `npm start` with the visit counter) see [docs/deploy.md](docs/deploy.md).
+
 ### The city, tile by tile
 The map is a grid of 1 km tiles. The original 5 km square is `r0c0` (south-west) … `r4c4` (north-east); the grid keeps that alignment and grows ring by ring over the city box in `tiles.CITY_WSEN` (≈ the Outer Ring Road), so outer tiles have negative or larger ids such as `r-1c7`. Progress is kept in `data/tiles/hitec-city/index.json`.
 ```bash

@@ -37,4 +37,27 @@ describe('dusk look', () => {
     const changed = a.reduce((n, v, i) => n + (v !== plain[i] ? 1 : 0), 0)
     expect(changed).toBeGreaterThan(200) // vehicles, people, lamps and their shadows
   })
+
+  test('some, not all, small open plots between buildings become parks', () => {
+    // Walls all round, with a 60 × 60 px open plot in the middle.
+    const plot = () => {
+      const px = new Uint8ClampedArray(W * W * 4)
+      const [wall, ground] = [hex('#e9dcc4'), hex('#d8c9a8')]
+      for (let y = 0; y < W; y++)
+        for (let x = 0; x < W; x++) px.set([...(x >= 98 && x < 158 && y >= 98 && y < 158 ? ground : wall), 255], (y * W + x) * 4)
+      return px
+    }
+    const green = (px: Uint8ClampedArray) => {
+      let n = 0
+      for (let i = 0; i < px.length; i += 4) if (px[i + 1] > px[i] + 30 && px[i + 1] > px[i + 2] + 30) n++
+      return n
+    }
+    const parks = Array.from({ length: 24 }, (_, i) => {
+      const px = plot()
+      applyDusk(px, W, W, (600 + i) * W, 600 * W, 1, true, SCALE)
+      return green(px) > 1000
+    })
+    expect(parks.some(Boolean)).toBe(true)
+    expect(parks.every(Boolean)).toBe(false)
+  })
 })

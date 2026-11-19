@@ -94,6 +94,8 @@ const SURFACES: [string, string, Surface][] = [
   ['#c7b593', '#8a7a5f', Surface.Path],
   ['#b39b75', '#7f6847', Surface.Path],
 ]
+/** Open ground: the area default and plain residential land (style.GROUND, landuse:residential). */
+const BARE = ['#d8c9a8', '#d6c8a6']
 /** Wall families at dusk (lit face): limewash, terracotta, sage, ochre, concrete, sandstone, powder blue… */
 const WALLS_DUSK: Record<string, string> = {
   '#e9dcc4': '#c7b28e', '#e7c9b4': '#c48a6d', '#d9e0c8': '#9cad88', '#f0e3c0': '#d0ab5c',
@@ -123,13 +125,15 @@ interface Pair {
   dusk: RGB
   s: Surface
   shadowed: boolean
+  bare: boolean // plain ground with no land use: an open plot
 }
 function pairs(): Pair[] {
   const out: Pair[] = []
-  const add = (art: RGB, dusk: RGB, s: Surface, shadowed = false) => out.push({ art, dusk, s, shadowed })
+  const add = (art: RGB, dusk: RGB, s: Surface, shadowed = false, bare = false) => out.push({ art, dusk, s, shadowed, bare })
   for (const [a, t, s] of SURFACES) {
-    add(hex(a), hex(t), s)
-    add(hex(a).map((v, i) => roundEven(v * SHADOW_TINT[i])) as RGB, mul(hex(t), DUSK_SHADOW), s, true)
+    const bare = BARE.includes(a)
+    add(hex(a), hex(t), s, false, bare)
+    add(hex(a).map((v, i) => roundEven(v * SHADOW_TINT[i])) as RGB, mul(hex(t), DUSK_SHADOW), s, true, bare)
   }
   for (const [w, r] of FAMILIES) {
     const wall = hex(w)
@@ -159,6 +163,7 @@ export interface Tables {
   colour: Uint8Array // entry → dusk RGB
   surface: Uint8Array // entry → Surface
   shadowed: Uint8Array // entry → 1 if a ground shadow pixel
+  bare: Uint8Array // entry → 1 if open ground
   lut: Uint8Array // 64³ smooth grade for colours without an exact entry
 }
 export const slotOf = (k: number) => (Math.imul(k, 0x9e3779b1) >>> 20) & (SLOTS - 1)
@@ -171,7 +176,8 @@ export function buildTables(): Tables {
   const colour = new Uint8Array(list.length * 3)
   const surface = new Uint8Array(list.length)
   const shadowed = new Uint8Array(list.length)
-  list.forEach(({ art, dusk, s, shadowed: sh }, i) => {
+  const bare = new Uint8Array(list.length)
+  list.forEach(({ art, dusk, s, shadowed: sh, bare: b }, i) => {
     const k = (art[0] << 16) | (art[1] << 8) | art[2]
     let slot = slotOf(k)
     while (keys[slot] !== -1 && keys[slot] !== k) slot = (slot + 1) & SLOT_MASK
@@ -181,6 +187,7 @@ export function buildTables(): Tables {
     colour.set(dusk, i * 3)
     surface[i] = s
     shadowed[i] = sh ? 1 : 0
+    bare[i] = b ? 1 : 0
   })
 
   // Smooth grade: base grade plus the anchors' corrections, blended by colour distance, so a
@@ -226,7 +233,7 @@ export function buildTables(): Tables {
         lut[o + 1] = clamp(Math.round(base[1] + cg / d))
         lut[o + 2] = clamp(Math.round(base[2] + cb / d))
       }
-  return { keys, entry, colour, surface, shadowed, lut }
+  return { keys, entry, colour, surface, shadowed, bare, lut }
 }
 
 // ---------------------------------------------------------------- textures (tileable, world-anchored)
@@ -243,7 +250,7 @@ export function hash(x: number, y: number): number {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296
 }
 /** Value noise with lattice cells sx × sy art px that wraps every P px (sx, sy divide P). */
-function noise(X: number, Y: number, sx: number, sy: number): number {
+export function noise(X: number, Y: number, sx: number, sy: number): number {
   const nx = P / sx
   const ny = P / sy
   const x = X / sx
@@ -282,8 +289,24 @@ function buildTexture(s: Surface): Uint8Array {
           v = noise(X, Y, 128, 64) > bayer(cx, cy) * 0.6 + 0.2 ? f(1.03) : f(0.96)
           break
         case Surface.Tree: {
-          const h = hash(cx, cy)
-          v = h < 0.18 ? f(0.88) : h > 0.86 ? f(1.12) : f(1)
+          // Leaf clumps: 8 × 4 px cells (2:1, like the ground), each with a jittered clump
+          // centre; pixels take the nearest clump, lit on its upper right (the sun side).
+          let best = Infinity
+          let bx = 0
+          let by = 0
+          for (let j = -1; j <= 1; j++)
+            for (let i = -1; i <= 1; i++) {
+              const gx = (X >> 3) + i
+              const gy = (Y >> 2) + j
+              const wx = ((gx % 128) + 128) % 128
+              const wy = ((gy % 256) + 256) % 256
+              const ox = gx * 8 + hash(wx, wy) * 8
+              const oy = gy * 4 + hash(wx + 911, wy) * 4
+              const d = ((X + 0.5 - ox) / 4) ** 2 + ((Y + 0.5 - oy) / 2) ** 2
+              if (d < best) [best, bx, by] = [d, X + 0.5 - ox, Y + 0.5 - oy]
+            }
+          const lit = bx / 4 - by / 2
+          v = best > 1.1 ? f(0.84) : lit > 0.45 ? f(1.15) : lit < -0.6 ? f(0.92) : f(1)
           break
         }
         case Surface.Window:
@@ -342,6 +365,11 @@ export function texture(s: number): Uint8Array | null {
   return (textures[s] = TEXTURED.includes(s as Surface) ? buildTexture(s as Surface) : null)
 }
 export const SPECIAL_COLOUR: Partial<Record<number, RGB>> = { [Surface.Water]: GLINT, [Surface.Window]: WINDOW_LIT }
+
+/** Every surface's pattern (null where none), indexed by Surface; built on first use. */
+export function allTextures(): (Uint8Array | null)[] {
+  return Object.values(Surface).map((s) => texture(s))
+}
 
 let tables: Tables | null = null
 export const getTables = () => (tables ??= buildTables())

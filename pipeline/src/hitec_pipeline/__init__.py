@@ -16,6 +16,16 @@ def main() -> None:
 
         cli(sys.argv[2:])
         return
+    if len(sys.argv) > 1 and sys.argv[1] == "corporate":  # company-to-building links for the web app
+        from .corporate import cli as corporate_cli
+
+        corporate_cli(sys.argv[2:])
+        return
+    if len(sys.argv) > 1 and sys.argv[1] == "places":  # the citywide search index for the web app
+        from .places import cli as places_cli
+
+        places_cli(sys.argv[2:])
+        return
 
     from .area import AREAS
 

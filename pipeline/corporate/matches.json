@@ -1,0 +1,56 @@
+{
+  "_about": "Hand-curated links from each record in data/corporate/pixelhyd_hyderabad_corporate_seed_dataset.json to map footprints. A link needs a named footprint (OSM building or campus polygon whose name identifies the company or property), never proximity alone. status: confirmed = the footprint and the occupant are both supported (shown and highlighted); unverified = a named footprint exists but the record still needs confirmation (searchable, labelled unverified, not highlighted); needs_manual_verification = no footprint could be tied to the record (not on the map). `expect_name` is checked against the OSM name when the data is built.",
+  "records": {
+    "microsoft_india_development_center": {
+      "status": "confirmed",
+      "match": "campus",
+      "campus": { "osm_id": "w159299918", "expect_name": "Microsoft" },
+      "buildings": [
+        { "osm_id": "w543748700", "expect_name": "Microsoft Building 1" },
+        { "osm_id": "w543748701", "expect_name": "Microsoft Building 2" },
+        { "osm_id": "w543748702", "expect_name": "Microsoft Building 3" },
+        { "osm_id": "w1344037686", "expect_name": "Microsoft Building 4" }
+      ],
+      "match_note": "The OSM campus polygon is named Microsoft and tagged with the source page (website=https://www.microsoft.com/en-in/msidc/); the office buildings inside it are named Microsoft Building 1-4 in OSM. Campus confirmed by Microsoft's own page; which building is the record's Building 3 candidate comes from OSM naming."
+    },
+    "wells_fargo_divyasree_orion": {
+      "status": "unverified",
+      "match": "building",
+      "campus": { "osm_id": "w1409668579", "expect_name": "Wells Fargo" },
+      "buildings": [{ "osm_id": "w1299545984", "expect_name": "Wells Fargo Tower 4" }],
+      "match_note": "An OSM building in Raidurg is named Wells Fargo Tower 4 (office=it), inside a commercial area named Wells Fargo. The record places Wells Fargo at the Divyasree Orion campus, but no OSM polygon is named Divyasree Orion, so the building and the record are not yet tied together. Needs the company's official address."
+    },
+    "google_hyderabad": {
+      "status": "needs_manual_verification",
+      "reason": "No OSM footprint is named DivyaSree Omega or Block 1. OSM has a Google Hyderabad building under construction in the Financial District (way 1247721916), which is a different site from the record's Kothaguda address."
+    },
+    "amazon_development_centre_hyderabad": {
+      "status": "needs_manual_verification",
+      "reason": "No OSM footprint is named aVance 6 or Phoenix SEZ. OSM names an Amazon campus in the Financial District (way 782009439, buildings 342031390 and 859668203), which is not the record's aVance 6 site."
+    },
+    "cognizant_mindspace_hyderabad": {
+      "status": "needs_manual_verification",
+      "reason": "No OSM footprint is named Mindspace or Building 12A. OSM names a Cognizant Technologies building in the Financial District (way 342243558), not at Raheja Mindspace, Madhapur."
+    },
+    "cyient_infocity_madhapur": {
+      "status": "needs_manual_verification",
+      "reason": "No OSM footprint is named Infocity or Software Units Layout. OSM names a Cyient commercial area in the Financial District (way 879132633), not the registered office address in Madhapur."
+    },
+    "deloitte_meenakshi_techpark": {
+      "status": "needs_manual_verification",
+      "reason": "No OSM footprint is named Meenakshi Tech Park or Deloitte. The nearest named property, Meenakshi Technova (way 342032577), is a different name; the exact tower is also unconfirmed in the record."
+    },
+    "jpmorgan_sattva_knowledge_city": {
+      "status": "needs_manual_verification",
+      "reason": "No OSM footprint is named Sattva Knowledge City. OSM has Salapuria Sattva Knowledge Park Tower 2 (way 1133460475), a different name; the record's source is a third-party directory."
+    },
+    "ey_skyview_10": {
+      "status": "needs_manual_verification",
+      "reason": "The record itself says the address is the auditor's, not evidence that EY occupies The Skyview 10 (research lead only). No OSM footprint is named Skyview."
+    },
+    "avance_business_hub_building_inventory": {
+      "status": "needs_manual_verification",
+      "reason": "Building inventory with no company. No OSM footprint is named aVance or any of its building names (Rover, Atlas, Kepler, Astro)."
+    }
+  }
+}

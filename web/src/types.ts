@@ -39,8 +39,54 @@ export interface Dataset {
   base: string
 }
 
+/**
+ * Where the map tiles live: this site's /tiles in development; in production usually a storage
+ * bucket or CDN, set at build time with VITE_TILES_URL (see docs/deploy.md).
+ */
+const TILES = (import.meta.env.VITE_TILES_URL || '/tiles').replace(/\/+$/, '')
+
+/** The first entry is the public map; the prototypes are development builds (settings, dev only). */
 export const DATASETS: Dataset[] = [
-  { id: 'hitec-city-k4', label: 'Hyderabad · city grid', base: '/tiles/hitec-city-k4' },
-  { id: 'prototype-k4', label: 'Prototype · 4 px/m', base: '/tiles/prototype-k4' },
-  { id: 'prototype-k2', label: 'Prototype · 2 px/m', base: '/tiles/prototype-k2' },
+  { id: 'hitec-city-k4', label: 'Hyderabad', base: `${TILES}/hitec-city-k4` },
+  ...(import.meta.env.DEV
+    ? [
+        { id: 'prototype-k4', label: 'Prototype · 4 px/m', base: '/tiles/prototype-k4' },
+        { id: 'prototype-k2', label: 'Prototype · 2 px/m', base: '/tiles/prototype-k2' },
+      ]
+    : []),
 ]
+
+/** A company at a site, linked to map footprints (web/public/data/corporate.json, built by the pipeline). */
+export interface CorporateSite {
+  id: string
+  /** confirmed: footprint and occupant supported; unverified: named footprint, occupant still to confirm. */
+  status: 'confirmed' | 'unverified'
+  /** campus: linked through a named campus polygon; building: through a named building. */
+  match: 'campus' | 'building'
+  match_note: string
+  company_name: string | null
+  brand_or_entity: string | null
+  sector: string | null
+  campus_or_property: string | null
+  building_name: string | null
+  address: string | null
+  city_area: string | null
+  association_type: string | null
+  evidence_level: string | null
+  verification_status: string | null
+  source_note: string | null
+  last_checked: string | null
+  sources: string[]
+  campus: { osm_id: string; name: string } | null
+  buildings: { id: string; osm_id: string; name: string | null; lat: number; lon: number }[]
+  /** Where to fly to: the campus or first building (WGS84, ground level). */
+  lat: number
+  lon: number
+}
+
+export interface CorporateData {
+  generated_at: string
+  dataset: string
+  attribution: string
+  sites: CorporateSite[]
+}

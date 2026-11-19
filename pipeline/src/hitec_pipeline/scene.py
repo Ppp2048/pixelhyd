@@ -217,29 +217,56 @@ def _elevated(lines: gpd.GeoDataFrame, kind: str, core: Polygon, proj: IsoProjec
             scene.objects.append(Obj(float(p.x + p.y - size), f"{row.osm_id}:p{s:.0f}", _bounds_px(proj, ring, 0, z), Pillar(ring, z - 1.5, S.METRO_PILLAR)))
 
 
-def _trees(areas: gpd.GeoDataFrame | None, pois: gpd.GeoDataFrame | None, core: Polygon, proj: IsoProjection, scene: Scene) -> None:
+GREEN = {"leisure:park", "leisure:garden", "landuse:grass", "landuse:meadow", "landuse:forest", "natural:scrub", "natural:wood", "natural:grassland"}
+
+
+def _area_stack(areas: gpd.GeoDataFrame | None, core: Polygon) -> list[tuple[str, Polygon]]:
+    """Land-use areas clipped to the core, in drawing order (bottom → top): by key group
+    (S.AREA_ORDER), then largest first so small areas sit on big ones. Green areas without
+    a ground colour (natural:wood) are kept too: they are not painted but grow trees."""
+    if areas is None:
+        return []
+    areas = areas.assign(group=areas["kind"].str.split(":").str[0])
+    stack: list[tuple[str, Polygon]] = []
+    for group in S.AREA_ORDER:
+        sub = areas[areas["group"] == group].copy()
+        sub["a"] = sub.geometry.area
+        for row in sub.sort_values("a", ascending=False).itertuples():
+            if row.kind not in S.AREA_FILL and row.kind not in GREEN:
+                continue
+            g = row.geometry.intersection(core)
+            if not g.is_empty:
+                stack.append((row.kind, g))
+    return stack
+
+
+def _trees(stack: list[tuple[str, Polygon]], pois: gpd.GeoDataFrame | None, core: Polygon, proj: IsoProjection, scene: Scene) -> None:
     pts: list[tuple[float, float, str]] = []
     if pois is not None:
         for row in pois[pois["kind"] == "tree"].itertuples():
             pts.append((row.geometry.x, row.geometry.y, row.osm_id))
-    green = {"leisure:park", "leisure:garden", "landuse:grass", "landuse:meadow", "landuse:forest", "natural:scrub", "natural:wood", "natural:grassland"}
     cell = 9.0  # global grid → identical placement in every chunk and run
-    if areas is not None:
-        for row in areas[areas["kind"].isin(green)].itertuples():
-            poly = row.geometry.intersection(core)
+    for i, (kind, poly) in enumerate(stack):
+        if kind not in GREEN:
+            continue
+        # Trees only where this green area is still the visible ground: not on a pond,
+        # rock, pitch or car park drawn over it.
+        cover = [g for k, g in stack[i + 1:] if k not in GREEN and g.intersects(poly)]
+        if cover:
+            poly = poly.difference(unary_union(cover))
             if poly.is_empty:
                 continue
-            density = 0.35 if row.kind in ("landuse:meadow", "natural:grassland") else 0.6
-            minx, miny, maxx, maxy = poly.bounds
-            for gx in np.arange(np.floor(minx / cell) * cell, maxx, cell):
-                for gy in np.arange(np.floor(miny / cell) * cell, maxy, cell):
-                    key = f"{gx:.0f},{gy:.0f}"
-                    if seeded_unit(key, "tree") > density:
-                        continue
-                    e = gx + cell * seeded_unit(key, "tx")
-                    n = gy + cell * seeded_unit(key, "ty")
-                    if poly.contains(Point(e, n)):
-                        pts.append((e, n, key))
+        density = 0.35 if kind in ("landuse:meadow", "natural:grassland") else 0.6
+        minx, miny, maxx, maxy = poly.bounds
+        for gx in np.arange(np.floor(minx / cell) * cell, maxx, cell):
+            for gy in np.arange(np.floor(miny / cell) * cell, maxy, cell):
+                key = f"{gx:.0f},{gy:.0f}"
+                if seeded_unit(key, "tree") > density:
+                    continue
+                e = gx + cell * seeded_unit(key, "tx")
+                n = gy + cell * seeded_unit(key, "ty")
+                if poly.contains(Point(e, n)):
+                    pts.append((e, n, key))
     for e, n, key in pts:
         if not core.contains(Point(e, n)):
             continue
@@ -285,18 +312,10 @@ def build_scene_from_layers(layers: dict, proj: IsoProjection, core, owns=None, 
     # Ground: base, then areas by key order, then roads.
     scene.ground.append((core, S.GROUND))
     areas = layers.get("areas")
-    if areas is not None:
-        areas = areas.assign(group=areas["kind"].str.split(":").str[0])
-        for group in S.AREA_ORDER:
-            sub = areas[areas["group"] == group].copy()
-            sub["a"] = sub.geometry.area
-            for row in sub.sort_values("a", ascending=False).itertuples():
-                colour = S.AREA_FILL.get(row.kind)
-                if colour is None:
-                    continue
-                g = row.geometry.intersection(core)
-                if not g.is_empty:
-                    scene.ground.append((g, colour))
+    stack = _area_stack(areas, core)
+    for kind, g in stack:
+        if kind in S.AREA_FILL:
+            scene.ground.append((g, S.AREA_FILL[kind]))
 
     roads = layers.get("roads")
     if roads is not None:
@@ -327,7 +346,7 @@ def build_scene_from_layers(layers: dict, proj: IsoProjection, core, owns=None, 
         _elevated(rail[rail["bridge"].astype(bool)], "rail", core, proj, scene, shadows, shadow_all)
 
     _buildings(buildings, core, proj, scene, shadows, owns, shadow_all)
-    _trees(areas, layers.get("pois"), core, proj, scene)
+    _trees(stack, layers.get("pois"), core, proj, scene)
 
     scene.shadow = unary_union(shadows).intersection(core) if shadows else None
     scene.objects = order_objects(scene.objects)

@@ -6,10 +6,13 @@
  *     zoomed-out colours go through a smooth grade built from the same anchors.
  *  2. Texture (zoom ≥ TEXTURE_MIN_ZOOM): tileable, world-anchored patterns per surface.
  *     They only lighten or darken the graded colour, so shadows and face tones survive.
- *  3. Building details (zoom ≥ 19) and street life (native zoom only): duskDetails.ts.
+ *  3. Building and tree details (zoom ≥ 19): duskDetails.ts; street life and pocket parks
+ *     (native zoom only): duskLife.ts, duskParks.ts.
  */
-import { addLife, detailBuildings, type Scale, type TileCtx } from './duskDetails'
-import { clamp, FOAM, getTables, MASK, SLOT_MASK, slotOf, SPECIAL, SPECIAL_COLOUR, Surface, texture } from './duskPalette'
+import { detailBuildings } from './duskDetails'
+import { addLife } from './duskLife'
+import type { Scale, TileCtx } from './duskShared'
+import { allTextures, clamp, FOAM, getTables, MASK, SLOT_MASK, slotOf, SPECIAL, SPECIAL_COLOUR, Surface } from './duskPalette'
 
 export const TEXTURE_MIN_ZOOM = 17 // below this a tile pixel covers ≥ 8 art px: texture would be noise
 const DETAIL_STEP = 2 // building details on tiles with ≤ 2 art px per pixel (zoom ≥ 19)
@@ -20,10 +23,13 @@ const DETAIL_STEP = 2 // building details on tiles with ≤ 2 art px per pixel (
  * `scale` (the art projection) enables street life on native-zoom tiles.
  */
 export function applyDusk(px: Uint8ClampedArray, w: number, h: number, x0: number, y0: number, step: number, textured: boolean, scale?: Scale): void {
-  const { keys, entry, colour, surface, shadowed, lut } = getTables()
+  const { keys, entry, colour, surface, shadowed, bare: isBare, lut } = getTables()
   const cls = new Uint8Array(w * h)
   const shade = new Uint8Array(w * h)
+  const bare = new Uint8Array(w * h)
   const detailed = step <= DETAIL_STEP
+  const texs = textured ? allTextures() : []
+  if (detailed) texs[Surface.Window] = null // close up, windows get per-window treatment (duskDetails)
   for (let j = 0, p = 0; j < h; j++) {
     const Y = (y0 + j * step) & MASK
     for (let i = 0; i < w; i++, p += 4) {
@@ -46,11 +52,11 @@ export function applyDusk(px: Uint8ClampedArray, w: number, h: number, x0: numbe
       const q = j * w + i
       cls[q] = s
       shade[q] = shadowed[e]
+      bare[q] = isBare[e]
       let R = colour[e * 3]
       let G = colour[e * 3 + 1]
       let B = colour[e * 3 + 2]
-      // Close up, windows get per-window treatment instead of the texture (duskDetails).
-      const t = textured && !(detailed && s === Surface.Window) ? texture(s) : null
+      const t = texs[s]
       if (t) {
         const code = t[(Y << 10) | ((x0 + i * step) & MASK)]
         if (code === SPECIAL) {
@@ -72,7 +78,7 @@ export function applyDusk(px: Uint8ClampedArray, w: number, h: number, x0: numbe
   }
   if (!detailed || !textured) return
   foam(px, w, h, cls)
-  const ctx: TileCtx = { px, w, h, x0, y0, step, cls, shade }
+  const ctx: TileCtx = { px, w, h, x0, y0, step, cls, shade, bare }
   detailBuildings(ctx)
   if (step === 1 && scale) addLife(ctx, scale)
 }

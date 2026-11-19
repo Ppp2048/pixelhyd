@@ -1,0 +1,12 @@
+# Cloudflare Pages: the site (dist) plus the visit counter function (functions/api/visits.ts).
+# Tiles are not part of this project; they live in an R2 bucket (see docs/deploy.md).
+name = "pixelhyd"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pixelhyd-visits"
+# Printed by `npx wrangler@4.156.0 d1 create pixelhyd-visits`. An identifier, not a secret.
+database_id = "REPLACE_WITH_DATABASE_ID"
+migrations_dir = "migrations"
