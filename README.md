@@ -39,6 +39,8 @@ uv run hitec-pipeline tiles batch r-1c2 r-1c3       # specific tiles; validated 
 uv run hitec-pipeline tiles batch r2c3 --rerender   # re-render without touching the tile's data
 uv run hitec-pipeline tiles run                     # just the next tile
 ```
+Large batches are split into strips of neighbouring tiles (`--step 16` by default; `--step 0` for one batch) that each publish when done, and the open app picks up each new version within a minute. A batch that stops partway resumes from its last finished render job the next time `batch` runs.
+
 `--workers N` sets the number of processes (default: CPU count − 2, at most 6; each needs ≈ 0.5 GB). Raw data is downloaded once per 5 km block (one Overpass and one Overture request for 25 tiles) and cut per tile. Rendering, overlays, the zoom pyramid and vector tiles run in parallel, and the archives are updated incrementally. Tiles use one global projection and a pinned Overture release, so they join seamlessly; the app shows them as the "Hyderabad · city grid" dataset.
 
 `render` writes `art.pmtiles`, `overlay.geojson` and `meta.json` to `data/out/<area>-k<k>/` and copies them to `web/public/tiles/` for the app. The web app lists datasets in `web/src/types.ts` (`prototype-k4`, `prototype-k2`); render both values of `--k` or remove the one you don't need.

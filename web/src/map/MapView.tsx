@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'
-import type { GeoJSONSource, MapLayerMouseEvent, MapMouseEvent } from 'maplibre-gl'
+import type { GeoJSONSource, MapLayerMouseEvent, MapMouseEvent, RasterTileSource, VectorTileSource } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { Protocol } from 'pmtiles'
 // Bundle MapLibre's module worker (and the chunk it imports) so it also works in production builds.
@@ -28,6 +28,22 @@ interface Props {
 }
 
 const NO_MATCH = ['==', ['get', 'id'], '__none__'] as const
+/** How often a growing tiled map checks for a newly published version. */
+const LIVE_POLL_MS = 60_000
+
+/** Pan limits: the whole city canvas (may extend to negative art px) plus a 10 % margin. */
+function panBounds(meta: DatasetMeta): maplibregl.LngLatBoundsLike {
+  const p = meta.projection
+  const [cx0, cy0, cx1, cy1] = meta.canvas ?? [0, 0, p.width, p.height]
+  const mx = (cx1 - cx0) * 0.1
+  const my = (cy1 - cy0) * 0.1
+  const [west, north] = artToLngLat(p, cx0 - mx, cy0 - my)
+  const [east, south] = artToLngLat(p, cx1 + mx, cy1 + my)
+  return [
+    [west, south],
+    [east, north],
+  ]
+}
 
 export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCursor }: Props) {
   const container = useRef<HTMLDivElement>(null)
@@ -45,12 +61,6 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
     ensureProtocol()
     const p = meta.projection
     const origin = window.location.origin
-    // Pan limits: the whole city canvas (may extend to negative art px) plus a margin.
-    const [cx0, cy0, cx1, cy1] = meta.canvas ?? [0, 0, p.width, p.height]
-    const mx = (cx1 - cx0) * 0.1
-    const my = (cy1 - cy0) * 0.1
-    const [west, north] = artToLngLat(p, cx0 - mx, cy0 - my)
-    const [east, south] = artToLngLat(p, cx1 + mx, cy1 + my)
     const url = readUrl()
     const centre =
       url.lat !== undefined && url.lon !== undefined
@@ -75,10 +85,7 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
       zoom: url.zoom ?? native - 0.6,
       minZoom: meta.zoom.min - 1,
       maxZoom: native + 2.5,
-      maxBounds: [
-        [west, south],
-        [east, north],
-      ],
+      maxBounds: panBounds(meta),
       renderWorldCopies: false,
       dragRotate: false,
       pitchWithRotate: false,
@@ -179,6 +186,33 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
       map.remove()
       mapRef.current = null
     }
+  }, [dataset, meta])
+
+  // Live updates: while the city grid grows, each batch publishes new versioned archives.
+  // Swap them in place (keeping the view) instead of waiting for a manual reload.
+  useEffect(() => {
+    if (!meta.art) return
+    const origin = window.location.origin
+    let shown = { art: meta.art, overlay: meta.overlay?.url, canvas: String(meta.canvas) }
+    const timer = window.setInterval(async () => {
+      const map = mapRef.current
+      if (!map || document.hidden || !map.isStyleLoaded()) return
+      let next: DatasetMeta
+      try {
+        next = await (await fetch(`${dataset.base}/meta.json`, { cache: 'no-store' })).json()
+      } catch {
+        return // publishing in progress or server restarting: try again next time
+      }
+      if (next.art && next.art !== shown.art) {
+        map.getSource<RasterTileSource>('art')?.setUrl(`pmtiles://${origin}${dataset.base}/${next.art}`)
+      }
+      if (next.overlay?.url && next.overlay.url !== shown.overlay) {
+        map.getSource<VectorTileSource>('overlay')?.setUrl(`pmtiles://${origin}${dataset.base}/${next.overlay.url}`)
+      }
+      if (String(next.canvas) !== shown.canvas) map.setMaxBounds(panBounds(next))
+      shown = { art: next.art ?? shown.art, overlay: next.overlay?.url, canvas: String(next.canvas) }
+    }, LIVE_POLL_MS)
+    return () => window.clearInterval(timer)
   }, [dataset, meta])
 
   useEffect(() => {

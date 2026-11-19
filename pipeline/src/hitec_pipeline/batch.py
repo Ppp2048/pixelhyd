@@ -13,7 +13,12 @@ A batch runs in stages; each stage fans out over a process pool:
              tiles replaced (vector tiles re-encoded only where the batch reaches)
 
 Tile statuses are updated only after the archives are written, so an interrupted
-batch leaves its tiles retryable and the published map unchanged.
+batch leaves its tiles retryable and the published map unchanged. Finished render
+jobs are recorded in the stage, so re-running an interrupted batch resumes from the
+last finished job instead of starting over.
+
+A large request (a whole ring) is split into strips of neighbouring tiles that are
+generated and published one after another, so the map grows while the ring runs.
 """
 
 from __future__ import annotations
@@ -30,6 +35,9 @@ from itertools import repeat
 from . import tiles as T
 
 DEFAULT_WORKERS = max(1, min(6, (os.cpu_count() or 2) - 2))
+DEFAULT_STEP = 16  # tiles per published strip; ~10–20 min each on a laptop
+PLAN = T.STAGE / "batch.json"  # the running batch: its tiles and options
+JOBS = T.STAGE / "jobs"  # one marker per finished render job, with the output tiles it changed
 
 
 def _log(msg: str) -> None:
@@ -39,6 +47,44 @@ def _log(msg: str) -> None:
 def _slices(items: list, parts: int) -> list[list]:
     n = max(1, math.ceil(len(items) / parts))
     return [items[i:i + n] for i in range(0, len(items), n)]
+
+
+def strips(tids: list[str], step: int = DEFAULT_STEP) -> list[list[str]]:
+    """Split tiles into strips of neighbours: sorted by angle around the grid centre (so a ring is
+    walked along its perimeter), then cut into near-equal parts of at most `step` tiles."""
+    if step <= 0 or len(tids) <= step:
+        return [list(tids)]
+    centre = (T.GRID - 1) / 2
+    order = sorted(tids, key=lambda t: (math.atan2(T.rc(t)[0] - centre, T.rc(t)[1] - centre), t))
+    parts = math.ceil(len(order) / step)
+    cuts = [round(i * len(order) / parts) for i in range(parts + 1)]
+    return [order[a:b] for a, b in zip(cuts, cuts[1:])]
+
+
+def interrupted() -> list[str]:
+    """Tiles of a batch that stopped before finishing (empty if none)."""
+    try:
+        return json.loads(PLAN.read_text())["tids"]
+    except (OSError, ValueError, KeyError):
+        return []
+
+
+def _job_marker(group: list[tuple[int, int]]):
+    cx, cy = group[0]
+    return JOBS / f"{cy // T.GROUP}_{cx // T.GROUP}.json"
+
+
+def _begin(plan: dict) -> bool:
+    """Prepare the stage for a batch; keep it (and resume) if it belongs to this same batch."""
+    try:
+        same = json.loads(PLAN.read_text()) == plan
+    except (OSError, ValueError):
+        same = False
+    if not same:
+        shutil.rmtree(T.STAGE, ignore_errors=True)
+        JOBS.mkdir(parents=True)
+        PLAN.write_text(json.dumps(plan))
+    return same
 
 
 def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = False, rerender: bool = False) -> bool:
@@ -57,11 +103,11 @@ def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = Fal
     T.save_index(idx)
     proj = T.global_projection()
     T.migrate_archives()
-    shutil.rmtree(T.STAGE, ignore_errors=True)
+    resumed = _begin({"tids": sorted(tids), "force": force, "rerender": rerender})
     timing: dict[str, float] = {}
     started = time.perf_counter()
     failed: dict[str, str] = {}
-    _log(f"batch of {len(tids)} tiles on {workers} workers: {' '.join(tids)}")
+    _log(f"{'resuming ' if resumed else ''}batch of {len(tids)} tiles on {workers} workers: {' '.join(tids)}")
 
     with ProcessPoolExecutor(max_workers=workers) as pool:
         # 1. data
@@ -94,6 +140,7 @@ def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = Fal
         ok = [t for t in tids if t not in failed]
         _log(f"data: {len(ok)} tiles ready, {len(failed)} failed ({timing['data_s']:.0f} s)")
         if not ok:
+            shutil.rmtree(T.STAGE, ignore_errors=True)  # nothing to resume: every tile is marked failed
             return False
 
         drawn = frozenset(T.done_tiles(idx) | set(ok))
@@ -102,12 +149,24 @@ def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = Fal
             t0 = time.perf_counter()
             chunks = sorted({c for t in ok for c in T.affected_chunks(proj, t)})
             groups = T.group_chunks(chunks)
-            _log(f"rendering {len(chunks)} chunks in {len(groups)} jobs")
             changed: set[tuple[int, int]] = set()
             peak = 0.0
-            for r in pool.map(T.render_job, groups, repeat(drawn)):
+            todo = []
+            for g in groups:  # jobs finished before an interruption are not rendered again
+                try:
+                    changed.update(map(tuple, json.loads(_job_marker(g).read_text())))
+                except (OSError, ValueError):
+                    todo.append(g)
+            _log(f"rendering {len(chunks)} chunks in {len(groups)} jobs"
+                 + (f" ({len(groups) - len(todo)} already done)" if len(todo) < len(groups) else ""))
+            futures = {pool.submit(T.render_job, g, drawn): g for g in todo}
+            for f in as_completed(futures):
+                r = f.result()
                 changed.update(r["changed"])
                 peak = max(peak, r["peak_memory_mb"])
+                marker = _job_marker(futures[f])
+                marker.with_suffix(".tmp").write_text(json.dumps(r["changed"]))
+                marker.with_suffix(".tmp").replace(marker)
             timing["render_s"] = time.perf_counter() - t0
             _log(f"render: {len(changed)} output tiles ({timing['render_s']:.0f} s)")
 

@@ -947,6 +947,8 @@ def cli(argv: list[str]) -> None:
     p.add_argument("action", choices=["index", "status", "next", "run", "batch", "mark-stale", "publish"])
     p.add_argument("tiles", nargs="*", help="tile ids (default: the next tiles outward)")
     p.add_argument("--count", type=int, default=24, help="batch: how many tiles")
+    p.add_argument("--step", type=int, default=batch.DEFAULT_STEP,
+                   help="batch: publish every STEP tiles (strips of neighbours); 0 = one batch")
     p.add_argument("--workers", type=int, default=batch.DEFAULT_WORKERS, help="parallel worker processes")
     p.add_argument("--force", action="store_true", help="re-prepare data and re-render even if done")
     p.add_argument("--rerender", action="store_true", help="re-render done tiles without touching their data")
@@ -962,7 +964,14 @@ def cli(argv: list[str]) -> None:
         if not tids:
             print("all city tiles done")
             return
-        ok = batch.run_batch(tids, workers=a.workers, force=a.force, rerender=a.rerender)
+        parts = [tids] if a.action == "run" else batch.strips(tids, a.step)
+        if (left := batch.interrupted()) and not (a.force or a.rerender):  # finish a stopped batch first
+            parts = [left] + [q for q in ([t for t in part if t not in left] for part in parts) if q]
+        ok = True
+        for i, part in enumerate(parts, 1):
+            if len(parts) > 1:
+                print(f"--- part {i}/{len(parts)}: {len(part)} tiles", flush=True)
+            ok = batch.run_batch(part, workers=a.workers, force=a.force, rerender=a.rerender) and ok
         print(status_table(load_index()))
         raise SystemExit(0 if ok else 1)
     elif a.action == "publish":

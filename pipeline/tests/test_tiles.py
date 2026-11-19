@@ -144,3 +144,37 @@ def test_tile_without_buildings_normalises(tmp_path):
     layers = read_layers(out / "features.gpkg")
     assert "buildings" not in layers or layers["buildings"].empty
     assert box(*sq.core).area > 0
+
+
+def test_a_ring_is_published_in_strips_of_neighbours():
+    from hitec_pipeline import batch
+
+    ring = [t for t in T.city_tile_ids() if T.ring_of(t) == 12] + ["r15c10", "r15c11", "r15c12", "r15c13", "r15c14"]
+    parts = batch.strips(ring, 16)
+    assert sorted(t for p in parts for t in p) == sorted(ring)  # every tile exactly once
+    assert max(map(len, parts)) <= 16 and max(map(len, parts)) - min(map(len, parts)) <= 1
+    for part in parts:  # each strip is one connected piece, so few chunks are rendered twice
+        seen, todo = {part[0]}, [part[0]]
+        while todo:
+            r, c = T.rc(todo.pop())
+            for n in part:
+                if n not in seen and max(abs(T.rc(n)[0] - r), abs(T.rc(n)[1] - c)) == 1:
+                    seen.add(n)
+                    todo.append(n)
+        assert seen == set(part)
+    assert batch.strips(ring, 0) == [ring]
+
+
+def test_an_interrupted_batch_keeps_its_finished_jobs(tmp_path, monkeypatch):
+    from hitec_pipeline import batch
+
+    monkeypatch.setattr(T, "STAGE", tmp_path / "stage")
+    monkeypatch.setattr(batch, "PLAN", tmp_path / "stage" / "batch.json")
+    monkeypatch.setattr(batch, "JOBS", tmp_path / "stage" / "jobs")
+    plan = {"tids": ["r0c0", "r0c1"], "force": False, "rerender": False}
+    assert batch._begin(plan) is False
+    batch._job_marker([(4, 8)]).write_text("[[1, 2]]")
+    assert batch.interrupted() == ["r0c0", "r0c1"]
+    assert batch._begin(plan) is True and batch._job_marker([(5, 9)]).exists()  # same group of 4 × 4 chunks
+    assert batch._begin({**plan, "tids": ["r0c0"]}) is False  # another batch starts clean
+    assert not batch._job_marker([(4, 8)]).exists()
