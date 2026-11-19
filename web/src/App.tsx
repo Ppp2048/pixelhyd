@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { MapView } from './map/MapView'
+import { MapView, type Look } from './map/MapView'
 import { readUrl } from './lib/urlState'
 import { Inspector } from './ui/Inspector'
 import { DATASETS, type BuildingProps, type DatasetMeta } from './types'
@@ -17,6 +17,8 @@ export default function App() {
   const [selected, setSelected] = useState<BuildingProps | null>(null)
   const [cursor, setCursor] = useState<[number, number] | null>(null)
   const [showRoads, setShowRoads] = useState(false)
+  // Dusk is the map's look; untick to see the original art.
+  const [look, setLook] = useState<Look>('dusk')
 
   useEffect(() => {
     let cancelled = false
@@ -30,7 +32,7 @@ export default function App() {
   }, [dataset])
 
   return (
-    <div className="app">
+    <div className={`app look-${look}`}>
       <header className="bar">
         <div className="brand">
           <strong>HITEC City</strong>
@@ -48,6 +50,11 @@ export default function App() {
             </select>
           </label>
           <label className="toggle">
+            <input type="checkbox" checked={look === 'dusk'} onChange={(e) => setLook(e.target.checked ? 'dusk' : 'day')} />
+            Dusk look
+          </label>
+          {look === 'dusk' && <span className="toggle-note">people, vehicles and lamps are illustrative, not data</span>}
+          <label className="toggle">
             <input type="checkbox" checked={showRoads} onChange={(e) => setShowRoads(e.target.checked)} />
             OSM road centrelines
           </label>
@@ -60,6 +67,7 @@ export default function App() {
             key={dataset.id}
             dataset={dataset}
             meta={meta}
+            look={look}
             showRoads={showRoads}
             selectedId={selected?.id ?? null}
             onSelect={setSelected}

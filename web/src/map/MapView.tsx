@@ -7,6 +7,7 @@ import { Protocol } from 'pmtiles'
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { artToLngLat, imageToReal, nativeZoom, realToImage } from '../lib/projection'
 import { readUrl, writeUrl } from '../lib/urlState'
+import { DUSK, duskProtocol, setArtGeometry } from './duskLook'
 import type { BuildingProps, Dataset, DatasetMeta } from '../types'
 
 // The PMTiles protocol is global to MapLibre: register it once, before any map exists.
@@ -14,13 +15,24 @@ let protocolRegistered = false
 function ensureProtocol() {
   if (protocolRegistered) return
   maplibregl.setWorkerUrl(workerUrl)
-  maplibregl.addProtocol('pmtiles', new Protocol().tile)
+  const pm = new Protocol()
+  maplibregl.addProtocol('pmtiles', pm.tile)
+  maplibregl.addProtocol(DUSK, duskProtocol(pm)) // same archive, graded and textured in the browser
   protocolRegistered = true
 }
+
+export type Look = 'day' | 'dusk'
+const PAPER: Record<Look, string> = { day: '#efe6d3', dusk: '#15171c' }
+/** Dusk tiles arrive from workers a little later, so they fade in instead of popping. */
+const FADE_MS: Record<Look, number> = { day: 0, dusk: 160 }
+/** The art source URL: the published archive, through the protocol of the chosen look. */
+const artSourceUrl = (dataset: Dataset, art: string, look: Look) =>
+  `${look === 'dusk' ? DUSK : 'pmtiles'}://${window.location.origin}${dataset.base}/${art}`
 
 interface Props {
   dataset: Dataset
   meta: DatasetMeta
+  look: Look
   showRoads: boolean
   selectedId: string | null
   onSelect: (b: BuildingProps | null) => void
@@ -45,11 +57,12 @@ function panBounds(meta: DatasetMeta): maplibregl.LngLatBoundsLike {
   ]
 }
 
-export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCursor }: Props) {
+export function MapView({ dataset, meta, look, showRoads, selectedId, onSelect, onCursor }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const selectRef = useRef(onSelect)
   const cursorRef = useRef(onCursor)
+  const lookRef = useRef(look)
   // Keep the latest callbacks for map event handlers without re-creating the map.
   useEffect(() => {
     selectRef.current = onSelect
@@ -67,6 +80,7 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
         ? realToImage(p, url.lon, url.lat)
         : artToLngLat(p, meta.centre.art_px[0], meta.centre.art_px[1])
     const native = nativeZoom(p)
+    setArtGeometry(meta.zoom.max, p.k, p.v)
 
     // Overlay: vector tiles for the tiled map (loads only what is in view), one GeoJSON for the prototypes.
     const vector = meta.overlay?.type === 'vector'
@@ -94,12 +108,12 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
       style: {
         version: 8,
         sources: {
-          art: { type: 'raster', url: `pmtiles://${origin}${dataset.base}/${meta.art ?? 'art.pmtiles'}`, tileSize: 256 },
+          art: { type: 'raster', url: artSourceUrl(dataset, meta.art ?? 'art.pmtiles', lookRef.current), tileSize: 256 },
           overlay: overlaySource,
         },
         layers: [
-          { id: 'paper', type: 'background', paint: { 'background-color': '#efe6d3' } },
-          { id: 'art', type: 'raster', source: 'art', paint: { 'raster-resampling': 'nearest', 'raster-fade-duration': 0 } },
+          { id: 'paper', type: 'background', paint: { 'background-color': PAPER[lookRef.current] } },
+          { id: 'art', type: 'raster', source: 'art', paint: { 'raster-resampling': 'nearest', 'raster-fade-duration': FADE_MS[lookRef.current] } },
           // No area outline, generation grid or POI markers: the art stands on its own.
           {
             id: 'roads-debug', type: 'line', ...ov('road_centreline'),
@@ -203,9 +217,7 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
       } catch {
         return // publishing in progress or server restarting: try again next time
       }
-      if (next.art && next.art !== shown.art) {
-        map.getSource<RasterTileSource>('art')?.setUrl(`pmtiles://${origin}${dataset.base}/${next.art}`)
-      }
+      if (next.art && next.art !== shown.art) map.getSource<RasterTileSource>('art')?.setUrl(artSourceUrl(dataset, next.art, lookRef.current))
       if (next.overlay?.url && next.overlay.url !== shown.overlay) {
         map.getSource<VectorTileSource>('overlay')?.setUrl(`pmtiles://${origin}${dataset.base}/${next.overlay.url}`)
       }
@@ -228,6 +240,24 @@ export function MapView({ dataset, meta, showRoads, selectedId, onSelect, onCurs
     if (map.isStyleLoaded()) apply()
     else map.once('load', apply)
   }, [selectedId])
+
+  // Switch look in place: same archive, other protocol; the view stays where it is.
+  const artName = useRef(meta.art ?? 'art.pmtiles')
+  useEffect(() => {
+    lookRef.current = look
+    const map = mapRef.current
+    if (!map) return
+    const apply = () => {
+      const src = map.getSource<RasterTileSource>('art')
+      const name = src?.url?.split('/').pop() ?? artName.current
+      const url = artSourceUrl(dataset, name, look)
+      if (src && src.url !== url) src.setUrl(url)
+      map.setPaintProperty('paper', 'background-color', PAPER[look])
+      map.setPaintProperty('art', 'raster-fade-duration', FADE_MS[look])
+    }
+    if (map.isStyleLoaded()) apply()
+    else map.once('load', apply)
+  }, [dataset, look])
 
   useEffect(() => {
     const map = mapRef.current
