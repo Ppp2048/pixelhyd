@@ -1,9 +1,11 @@
 /**
  * The URL always describes what is on screen, in real coordinates:
  *   ?lat=<WGS84>&lon=<WGS84>&z=<zoom>&b=<building id>&s=<company site id>&p=<place id>&d=<dataset, if not the default>
+ * plus, only while residential mode is on, its h… parameters (see homesUrl.ts).
  * It is written only after camera movement settles and is re-read on
  * back/forward navigation, so shared links always match the view.
  */
+import { decodeHomes, encodeHomes, type HomesUrl } from './homesUrl'
 
 export interface ViewState {
   dataset?: string
@@ -13,6 +15,7 @@ export interface ViewState {
   building?: string
   site?: string
   place?: string
+  homes?: HomesUrl
 }
 
 const num = (v: string | null) => {
@@ -31,6 +34,7 @@ export function readUrl(search = window.location.search): ViewState {
     building: q.get('b') ?? undefined,
     site: q.get('s') ?? undefined,
     place: q.get('p') ?? undefined,
+    homes: decodeHomes(q),
   }
 }
 
@@ -43,6 +47,7 @@ export function writeUrl(s: ViewState): void {
   if (s.building) q.set('b', s.building)
   if (s.site) q.set('s', s.site)
   if (s.place) q.set('p', s.place)
+  for (const [k, v] of s.homes ? encodeHomes(s.homes) : []) q.set(k, v)
   const next = `${window.location.pathname}?${q.toString()}`
   if (next !== `${window.location.pathname}${window.location.search}`) {
     window.history.replaceState(null, '', next)

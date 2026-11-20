@@ -51,3 +51,25 @@ export const ExternalIcon = () => (
     <path d="M11 4h5v5M16 4l-7 7M14 12v4H4V6h4" />
   </Icon>
 )
+export const HomeIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="M3 9.5 10 4l7 5.5M5 8v8h10V8M8.5 16v-4h3v4" />
+  </Icon>
+)
+export const BackIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="m12 4-6 6 6 6" />
+  </Icon>
+)
+/** Side by side: two columns. */
+export const CompareIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <rect x="3" y="4" width="5.5" height="12" rx="1.2" />
+    <rect x="11.5" y="4" width="5.5" height="12" rx="1.2" />
+  </Icon>
+)
+export const ChevronDownIcon = ({ size }: { size?: number }) => (
+  <Icon size={size}>
+    <path d="m5 8 5 5 5-5" />
+  </Icon>
+)

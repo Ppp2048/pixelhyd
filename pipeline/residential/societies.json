@@ -1,0 +1,146 @@
+{
+ "about": "Hand-curated societies for the home finder. Facts are copied from the page named in each `source` (checked on `last_checked`); anything a page does not state, or states inconsistently, is left out and explained in `note`. Areas keep the type the page gives ('unspecified' when it just says sq. ft.). `mapped` records only name an OpenStreetMap boundary. Rents exist only as cited area benchmarks, never per society.",
+ "neighbourhoods": [
+  {"id": "financial-district", "name": "Financial District", "lat": 17.41298, "lon": 78.33863, "osm_id": "n10724816503"},
+  {"id": "gachibowli", "name": "Gachibowli", "lat": 17.44362, "lon": 78.35196, "osm_id": "n701232038"},
+  {"id": "hitec-city", "name": "HITEC City", "lat": 17.45081, "lon": 78.38345, "osm_id": "n2926946739"},
+  {"id": "khajaguda", "name": "Khajaguda", "lat": 17.41722, "lon": 78.36561, "osm_id": "n2930528724"},
+  {"id": "kokapet", "name": "Kokapet", "lat": 17.39486, "lon": 78.33652, "osm_id": "n5401127313"},
+  {"id": "kondapur", "name": "Kondapur", "lat": 17.45879, "lon": 78.37306, "osm_id": "n2237665097"},
+  {"id": "madhapur", "name": "Madhapur", "lat": 17.44089, "lon": 78.39163, "osm_id": "n349267516"},
+  {"id": "manikonda", "name": "Manikonda", "lat": 17.40371, "lon": 78.37661, "osm_id": "n2935018014"},
+  {"id": "masjid-banda", "name": "Masjid Banda", "lat": 17.46704, "lon": 78.34152, "osm_id": "n2926299112"},
+  {"id": "nanakramguda", "name": "Nanakramguda", "lat": 17.42178, "lon": 78.33798, "osm_id": "n13369264755"},
+  {"id": "narsingi", "name": "Narsingi", "lat": 17.39152, "lon": 78.35989, "osm_id": "n2935018015"}
+ ],
+ "benchmarks": [
+  {"id": "anarock-gachibowli-2025q2", "area": "Gachibowli", "neighbourhood": "gachibowli", "bhk": 2, "size_sqft": 1000,
+   "rent_month": 36600, "period": "Q2 2025", "publisher": "ANAROCK Research", "via": "Siasat Daily, 14 Aug 2025",
+   "source": "https://www.siasat.com/real-estate-sees-spike-in-house-rents-in-two-hyderabad-areas-3258622"},
+  {"id": "anarock-hitec-city-2025q2", "area": "HITEC City", "neighbourhood": "hitec-city", "bhk": 2, "size_sqft": 1000,
+   "rent_month": 36350, "period": "Q2 2025", "publisher": "ANAROCK Research", "via": "Siasat Daily, 14 Aug 2025",
+   "source": "https://www.siasat.com/real-estate-sees-spike-in-house-rents-in-two-hyderabad-areas-3258622"}
+ ],
+ "societies": [
+  {
+   "id": "my-home-avatar", "name": "My Home Avatar", "developer": "My Home Constructions", "research": "researched",
+   "site": {"osm_id": "w975084201", "expect_name": "My Home Avatar"},
+   "facts": {
+    "land_acres": {"value": 22.57, "source": "https://www.myhomeconstructions.com/my-home-avatar"},
+    "open_space_pct": {"value": 83.5, "source": "https://www.myhomeconstructions.com/my-home-avatar"},
+    "amenities": {"value": ["Swimming pool", "Kids' play area", "Multipurpose court"], "source": "https://www.myhomeconstructions.com/my-home-avatar"}
+   },
+   "note": "BHK not recorded: the page title says 2 and 3 BHK while its enquiry options list 3, 3.5 and 4 BHK. No RERA number on the page.",
+   "last_checked": "2026-11-20"
+  },
+  {
+   "id": "my-home-vihanga", "name": "My Home Vihanga", "developer": "My Home Constructions", "research": "researched",
+   "site": {"osm_id": "w614574297", "expect_name": "My Home Vihanga"},
+   "facts": {
+    "land_acres": {"value": 21, "source": "https://www.myhomeconstructions.com/my-home-vihanga"},
+    "bhk": {"value": [2, 3], "source": "https://www.myhomeconstructions.com/my-home-vihanga"}
+   },
+   "last_checked": "2026-11-20"
+  },
+  {
+   "id": "my-home-abhra", "name": "My Home Abhra", "developer": "My Home Constructions", "research": "researched",
+   "site": {"osm_id": "w626633076", "expect_name": "My Home Abhra"},
+   "facts": {
+    "land_acres": {"value": 5, "source": "https://www.myhomeconstructions.com/my-home-abhra"},
+    "bhk": {"value": [2, 3], "source": "https://www.myhomeconstructions.com/my-home-abhra"}
+   },
+   "last_checked": "2026-11-20"
+  },
+  {
+   "id": "my-home-bhooja", "name": "My Home Bhooja", "developer": "My Home Constructions", "research": "researched",
+   "site": {"osm_id": "w513239611", "expect_name": "My Home Bhuja"},
+   "facts": {
+    "land_acres": {"value": 18, "source": "https://www.myhomeconstructions.com/my-home-bhooja"},
+    "bhk": {"value": [3, 4], "source": "https://www.myhomeconstructions.com/my-home-bhooja"},
+    "floors": {"value": "36", "source": "https://www.myhomeconstructions.com/my-home-bhooja"},
+    "clubhouse_sqft": {"value": 78000, "source": "https://www.myhomeconstructions.com/my-home-bhooja"}
+   },
+   "note": "OpenStreetMap spells it Bhuja. The page gives the clubhouse as 0.78 lakh sq ft.",
+   "last_checked": "2026-11-20"
+  },
+  {
+   "id": "my-home-mangala", "name": "My Home Mangala", "developer": "My Home Constructions", "research": "researched",
+   "site": {"osm_id": "w1527256707", "expect_name": "Mangala"},
+   "facts": {
+    "land_acres": {"value": 20, "source": "https://www.myhomeconstructions.com/my-home-mangala"},
+    "towers": {"value": 11, "source": "https://www.myhomeconstructions.com/my-home-mangala"},
+    "bhk": {"value": [2, 2.5, 3], "source": "https://www.myhomeconstructions.com/my-home-mangala"},
+    "clubhouse_sqft": {"value": 54000, "source": "https://www.myhomeconstructions.com/my-home-mangala"}
+   },
+   "note": "The page counts 11 blocks.",
+   "last_checked": "2026-11-20"
+  },
+  {
+   "id": "my-home-tarkshya", "name": "My Home Tarkshya", "developer": "My Home Constructions", "research": "researched",
+   "site": {"osm_id": "w1212097729", "expect_name": "My Home Tarkshya"},
+   "facts": {
+    "land_acres": {"value": 5.82, "source": "https://www.myhomeconstructions.com/my-home-tarkshya"},
+    "towers": {"value": 4, "source": "https://www.myhomeconstructions.com/my-home-tarkshya"},
+    "floors": {"value": "G+32", "source": "https://www.myhomeconstructions.com/my-home-tarkshya"},
+    "open_space_pct": {"value": 78, "source": "https://www.myhomeconstructions.com/my-home-tarkshya"},
+    "rera": {"value": "P02400001620", "source": "https://www.myhomeconstructions.com/my-home-tarkshya"}
+   },
+   "note": "BHK not recorded: the page title says 3 BHK while its enquiry options list 3 and 4 BHK.",
+   "last_checked": "2026-11-20"
+  },
+  {
+   "id": "prestige-high-fields", "name": "Prestige High Fields", "developer": "Prestige Group", "research": "researched",
+   "site": {"osm_id": "w1120726071", "expect_name": "Prestige High Fields"},
+   "facts": {
+    "status": {"value": "completed", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    "land_acres": {"value": 21.85, "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    "towers": {"value": 10, "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    "bhk": {"value": [2, 2.5, 3, 3.5, 4], "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    "amenities": {"value": ["Clubhouse with gym", "Spa", "Badminton courts", "Squash courts", "Mini theatre", "Guest rooms", "Party hall", "Restaurant", "Creche", "Library", "Salon", "Space for supermarket, pharmacy and ATM"],
+     "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"}
+   },
+   "configurations": [
+    {"label": "Type A", "bhk": 2, "area_sqft": [1283, 1283], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type B", "bhk": 2.5, "area_sqft": [1410, 1410], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type C", "bhk": 2.5, "area_sqft": [1492, 1492], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type D", "bhk": 3, "area_sqft": [1742, 1742], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type E", "bhk": 3, "area_sqft": [1742, 1742], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type F", "bhk": 3.5, "area_sqft": [1919, 1919], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type G", "bhk": 3.5, "area_sqft": [1993, 1993], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type H", "bhk": 4, "area_sqft": [2713, 2713], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type J", "bhk": 4, "area_sqft": [2729, 2729], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type K", "bhk": 4, "area_sqft": [2848, 2848], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type L", "bhk": 3, "area_sqft": [4070, 4070], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"},
+    {"label": "Type M", "bhk": 3, "area_sqft": [4069, 4069], "area_type": "unspecified", "source": "https://www.prestigeconstructions.com/residential-projects/hyderabad/prestige-high-fields"}
+   ],
+   "note": "The page says ready to move in. Unit count not recorded: the page gives both 2,356 and 2,240. Unit sizes are in sq. ft. without saying carpet or super built-up.",
+   "last_checked": "2026-11-20"
+  },
+  {
+   "id": "rajapushpa-provincia", "name": "Rajapushpa Provincia", "developer": "Rajapushpa Properties", "research": "researched",
+   "site": {"osm_id": "w1271779610", "expect_name": "Rajapushpa Provincia"},
+   "facts": {
+    "bhk": {"value": [2, 3], "source": "https://rajapushpa.in/projects/residential/provincia-apartments-narsingi-hyderabad"},
+    "towers": {"value": 11, "source": "https://rajapushpa.in/projects/residential/provincia-apartments-narsingi-hyderabad"},
+    "floors": {"value": "G+39", "source": "https://rajapushpa.in/projects/residential/provincia-apartments-narsingi-hyderabad"},
+    "size_range_sqft": {"value": [1370, 2660], "area_type": "unspecified", "source": "https://rajapushpa.in/projects/residential/provincia-apartments-narsingi-hyderabad"},
+    "rera": {"value": "P02400002487", "source": "https://rajapushpa.in/projects/residential/provincia-apartments-narsingi-hyderabad"},
+    "amenities": {"value": ["Two clubhouses (1.5 lakh sq ft)", "Swimming pool"], "source": "https://rajapushpa.in/projects/residential/provincia-apartments-narsingi-hyderabad"}
+   },
+   "note": "Only the overall size range is published, not sizes per BHK.",
+   "last_checked": "2026-11-20"
+  },
+  {"id": "lanco-hills", "name": "Lanco Hills", "research": "mapped", "site": {"osm_id": "w626630204", "expect_name": "Lanco Hills"}},
+  {"id": "aparna-serene-park", "name": "Aparna Serene Park", "research": "mapped", "site": {"osm_id": "w964281067", "expect_name": "Aparna Serene Park"}},
+  {"id": "rajapushpa-atria", "name": "Rajapushpa Atria", "research": "mapped", "site": {"osm_id": "w626663685", "expect_name": "Rajapushpa Atria"}},
+  {"id": "hill-ridge-villas", "name": "Hill Ridge Villas and Apartments", "research": "mapped", "site": {"osm_id": "w342257760", "expect_name": "Hill Ridge"}},
+  {"id": "ramky-towers", "name": "Ramky Towers", "research": "mapped", "site": {"osm_id": "w374411584", "expect_name": "Ramky Towers"}},
+  {"id": "ncc-urban-gardenia", "name": "NCC Urban Gardenia", "research": "mapped", "site": {"osm_id": "w924837532", "expect_name": "Urban Gardenia"}},
+  {"id": "trendset-winz", "name": "Trendset Winz", "research": "mapped", "site": {"osm_id": "w139444438", "expect_name": "Trendset Winz"}},
+  {"id": "aditya-sunshine", "name": "Aditya Sunshine", "research": "mapped", "site": {"osm_id": "w332254773", "expect_name": "aditya sunshine"}},
+  {"id": "jayabheri-silicon-county", "name": "Jayabheri Silicon County", "research": "mapped", "site": {"osm_id": "w89915497", "expect_name": "Silicon County"}},
+  {"id": "dsr-fortune-prime", "name": "DSR Fortune Prime", "research": "mapped", "site": {"osm_id": "w751007953", "expect_name": "Fortune Prime"}},
+  {"id": "nectar-gardens", "name": "Nectar Gardens", "research": "mapped", "site": {"osm_id": "w68876741", "expect_name": "Nectar Gardens"}},
+  {"id": "prestige-tranquil", "name": "Prestige Tranquil", "research": "mapped", "site": {"osm_id": "w1120726040", "expect_name": "Prestige Tranquil"}}
+ ]
+}

@@ -5,10 +5,11 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { Protocol } from 'pmtiles'
 // Bundle MapLibre's module worker (and the chunk it imports) so it also works in production builds.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { artToLngLat, imageToReal, nativeZoom, realToImage } from '../lib/projection'
+import { artToLngLat, imageToReal, lngLatToArt, nativeZoom, realToImage, silhouetteGround } from '../lib/projection'
 import { readUrl, writeUrl } from '../lib/urlState'
 import { siteTitle, type Corporate } from '../lib/corporate'
 import type { Place } from '../lib/places'
+import type { LitPlace } from '../lib/homes'
 import { DUSK, duskProtocol, setArtGeometry } from './duskLook'
 import { DATASETS, type BuildingProps, type CorporateSite, type Dataset, type DatasetMeta } from '../types'
 
@@ -39,12 +40,37 @@ export interface MapApi {
   resetView: () => void
   flyToSite: (site: CorporateSite) => void
   flyToPlace: (place: Place) => void
+  /** Fit real-world points (WGS84 [lon, lat]) into view beside the card. */
+  fitPoints: (points: [number, number][]) => void
+  /** Ground point under a building on screen (from its loaded silhouette), or null if it is not loaded. */
+  buildingGround: (id: string, height: number) => [number, number] | null
 }
 
 /** What is selected on the map: the footprints to outline, and whether they are an unverified site. */
 export interface Highlight {
   ids: string[]
   unverified: boolean
+}
+
+/** Residential mode on the map: society footprints by verdict ("no" is not drawn) and dots when zoomed out. */
+export interface HomesLayer {
+  match: string[]
+  likely: string[]
+  unknown: string[]
+  /** Footprints of the society whose card is open. */
+  selected: string[]
+  /** One per matching or likely society. [lon, lat] in WGS84 */
+  dots: { id: string; name: string; lon: number; lat: number; verdict: 'match' | 'likely' }[]
+  /** Hover text per society building. */
+  names: Map<string, string>
+  /** PGs shown and not ruled out: a diamond each, at every zoom. [lon, lat] in WGS84; `tip` is the hover text. */
+  pgs: { id: string; name: string; lon: number; lat: number; verdict: 'match' | 'likely' | 'unknown'; tip: string }[]
+  /** The PG whose card is open: a ring, and its other listings' points (dotted) where they disagree. */
+  openPg: { name: string; lon: number; lat: number; others: { lon: number; lat: number }[] } | null
+  /** Compared homes, numbered 1-3 on the map in this order. [lon, lat] in WGS84 */
+  compare: { id: string; name: string; lon: number; lat: number }[]
+  /** Places lit by the hovered comparison row. */
+  lit: LitPlace[]
 }
 
 interface Props {
@@ -54,10 +80,15 @@ interface Props {
   showRoads: boolean
   corporate: Corporate | null
   highlight: Highlight
+  /** Residential mode; null (the default) leaves the map exactly as it is without it. */
+  homes: HomesLayer | null
+  onSelectSociety: (id: string) => void
   /** A searched place that is not a building: marked with a pin. [lon, lat] */
   pin: [number, number] | null
   /** Space taken by the details card on the left (px), so flights land beside it. */
   leftInset: number
+  /** Space taken along the bottom (px), by the comparison strip. */
+  bottomInset: number
   onSelectBuilding: (b: BuildingProps | null) => void
   onSelectSite: (site: CorporateSite) => void
   onCursor: (lonLat: [number, number] | null) => void
@@ -103,6 +134,221 @@ const pinData = (meta: DatasetMeta, pin: [number, number] | null): maplibregl.Ge
   pin
     ? { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: realToImage(meta.projection, pin[0], pin[1]) } }
     : EMPTY
+
+/**
+ * Residential colours: the card's confirmed (green) and unverified (amber) tokens, per look, and a cool
+ * blue for lit places, apart from the verdict greens and the companies' orange.
+ */
+const HOME_COLOURS: Record<Look, { fit: string; unsure: string; open: string; dotEdge: string; lit: string }> = {
+  dusk: { fit: '#74cf9f', unsure: '#e8c27a', open: '#eafff3', dotEdge: '#15171c', lit: '#8fd0ff' },
+  day: { fit: '#2f7d4f', unsure: '#9a6a00', open: '#173f28', dotEdge: '#fbf7ee', lit: '#2d6a9a' },
+}
+const HOME_LINES = ['homes-match-fill', 'homes-match-line', 'homes-likely-line', 'homes-unknown-casing', 'homes-unknown-line', 'homes-open']
+const HOME_DOTS = ['homes-dot-halo', 'homes-dot', 'homes-pg-ring', 'homes-pg-alt', 'homes-pg', 'homes-lit-halo', 'homes-lit']
+const HOME_SOURCES = ['homes', 'homes-pg', 'homes-pg-open', 'homes-lit']
+const PG_IMAGES = ['pg-match', 'pg-likely', 'pg-unknown', 'pg-alt', 'pg-ring']
+
+/** Device pixels per CSS pixel in the PG diamonds, and their canvas side in CSS pixels. */
+const PG_PX = 2
+const PG_BOX = 32
+
+/**
+ * PG diamonds (the style has no sprite, so they are drawn here), coloured like the society dots: filled =
+ * match, ring = likely, dashed amber = unknown; a dotted outline for another listing of the open PG, and a
+ * soft ring around the open one.
+ */
+function pgImages(look: Look): Record<string, ImageData> {
+  const c = HOME_COLOURS[look]
+  const draw = (paint: (g: CanvasRenderingContext2D) => void) => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = PG_BOX * PG_PX
+    const g = canvas.getContext('2d')!
+    g.scale(PG_PX, PG_PX)
+    g.translate(PG_BOX / 2, PG_BOX / 2)
+    paint(g)
+    return g.getImageData(0, 0, canvas.width, canvas.height)
+  }
+  const diamond = (g: CanvasRenderingContext2D, r: number) => {
+    g.beginPath()
+    g.moveTo(0, -r)
+    g.lineTo(r, 0)
+    g.lineTo(0, r)
+    g.lineTo(-r, 0)
+    g.closePath()
+  }
+  const edge = (g: CanvasRenderingContext2D, r: number) => {
+    diamond(g, r + 2.2)
+    g.fillStyle = c.dotEdge
+    g.globalAlpha = look === 'dusk' ? 0.8 : 0.9
+    g.fill()
+    g.globalAlpha = 1
+  }
+  return {
+    'pg-match': draw((g) => {
+      edge(g, 6.4)
+      diamond(g, 6.4)
+      g.fillStyle = c.fit
+      g.fill()
+    }),
+    'pg-likely': draw((g) => {
+      edge(g, 6.4)
+      diamond(g, 5.4)
+      g.fillStyle = c.dotEdge
+      g.fill()
+      g.lineWidth = 2
+      g.strokeStyle = c.fit
+      g.stroke()
+    }),
+    'pg-unknown': draw((g) => {
+      edge(g, 7.4)
+      diamond(g, 6.6)
+      g.lineWidth = 2
+      g.setLineDash([2.4, 1.8])
+      g.strokeStyle = c.unsure
+      g.stroke()
+    }),
+    'pg-alt': draw((g) => {
+      diamond(g, 5)
+      g.lineWidth = 3
+      g.strokeStyle = c.dotEdge
+      g.globalAlpha = 0.45
+      g.stroke()
+      g.globalAlpha = 1
+      g.lineWidth = 1.6
+      g.setLineDash([1.2, 1.6])
+      g.strokeStyle = c.unsure
+      g.stroke()
+    }),
+    'pg-ring': draw((g) => {
+      diamond(g, 12.5)
+      g.lineWidth = 3.5
+      g.strokeStyle = c.fit
+      g.globalAlpha = 0.5
+      g.stroke()
+      g.globalAlpha = 1
+      diamond(g, 10.2)
+      g.lineWidth = 1.5
+      g.strokeStyle = c.open
+      g.stroke()
+    }),
+  }
+}
+
+/** Residential layers, added only while the mode is on: filled = match, outline = likely, dashed = unknown. */
+function homeLayers(meta: DatasetMeta, look: Look): maplibregl.LayerSpecification[] {
+  const c = HOME_COLOURS[look]
+  const building = (meta.overlay?.type === 'vector'
+    ? { source: 'overlay', 'source-layer': 'building' }
+    : { source: 'overlay', filter: ['==', ['get', 'layer'], 'building'] }) as Record<string, unknown>
+  const width: maplibregl.ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], 14, 1.2, 20, 2.2]
+  const fade = (from: number): maplibregl.ExpressionSpecification => ['interpolate', ['linear'], ['zoom'], DOT_FADE[0], from, DOT_FADE[1], 0]
+  const pgSize: maplibregl.ExpressionSpecification = ['interpolate', ['linear'], ['zoom'], 11, 0.8, 16, 1.1]
+  return [
+    { id: 'homes-match-fill', type: 'fill', ...building, filter: NONE, paint: { 'fill-color': c.fit, 'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14, 0.3, 18, 0.16] } },
+    { id: 'homes-match-line', type: 'line', ...building, filter: NONE, paint: { 'line-color': c.fit, 'line-width': width } },
+    { id: 'homes-likely-line', type: 'line', ...building, filter: NONE, paint: { 'line-color': c.fit, 'line-opacity': 0.9, 'line-width': width } },
+    // Dashes over the light day art get a soft pale casing, so they read apart from the buildings' own edges.
+    {
+      id: 'homes-unknown-casing', type: 'line', ...building, filter: NONE,
+      paint: { 'line-color': c.dotEdge, 'line-width': 4, 'line-opacity': look === 'day' ? 0.6 : 0 },
+    },
+    { id: 'homes-unknown-line', type: 'line', ...building, filter: NONE, paint: { 'line-color': c.unsure, 'line-width': look === 'day' ? 2 : 1.6, 'line-dasharray': [2, 1.5] } },
+    { id: 'homes-open', type: 'line', ...building, filter: NONE, paint: { 'line-color': c.open, 'line-width': ['interpolate', ['linear'], ['zoom'], 14, 2, 20, 3] } },
+    {
+      id: 'homes-dot-halo', type: 'circle', source: 'homes', maxzoom: DOT_FADE[1],
+      paint: { 'circle-color': c.fit, 'circle-opacity': fade(0.22), 'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 6, 14, 11], 'circle-blur': 0.6 },
+    },
+    {
+      // Match: a filled dot; likely: a ring, as on the footprints.
+      id: 'homes-dot', type: 'circle', source: 'homes', maxzoom: DOT_FADE[1],
+      paint: {
+        'circle-color': ['case', ['==', ['get', 'verdict'], 'match'], c.fit, c.dotEdge],
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 3.5, 14, 5.5],
+        'circle-stroke-color': ['case', ['==', ['get', 'verdict'], 'match'], c.dotEdge, c.fit],
+        'circle-stroke-width': 2,
+        'circle-opacity': fade(1),
+        'circle-stroke-opacity': fade(1),
+      },
+    },
+    // PGs: diamonds at every zoom (they have no footprints), the best fits drawn on top.
+    {
+      id: 'homes-pg-ring', type: 'symbol', source: 'homes-pg-open', filter: ['==', ['get', 'role'], 'open'],
+      layout: { 'icon-image': 'pg-ring', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-size': pgSize },
+    },
+    {
+      id: 'homes-pg-alt', type: 'symbol', source: 'homes-pg-open', filter: ['==', ['get', 'role'], 'other'],
+      layout: { 'icon-image': 'pg-alt', 'icon-allow-overlap': true, 'icon-ignore-placement': true, 'icon-size': pgSize },
+    },
+    {
+      id: 'homes-pg', type: 'symbol', source: 'homes-pg',
+      layout: {
+        'icon-image': ['concat', 'pg-', ['get', 'verdict']],
+        'icon-allow-overlap': true,
+        'icon-ignore-placement': true,
+        'icon-size': pgSize,
+        'symbol-sort-key': ['match', ['get', 'verdict'], 'match', 3, 'likely', 2, 1],
+      },
+    },
+    // Places behind a hovered comparison row, at every zoom.
+    { id: 'homes-lit-halo', type: 'circle', source: 'homes-lit', paint: { 'circle-color': c.lit, 'circle-opacity': 0.3, 'circle-radius': 11, 'circle-blur': 0.6 } },
+    {
+      id: 'homes-lit', type: 'circle', source: 'homes-lit',
+      paint: { 'circle-color': c.lit, 'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 3.5, 18, 5.5], 'circle-stroke-color': c.dotEdge, 'circle-stroke-width': 1.5 },
+    },
+  ] as maplibregl.LayerSpecification[]
+}
+
+const both = (xs: number[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}` : String(xs[0]))
+const homeLit = (meta: DatasetMeta, lit: LitPlace[]): maplibregl.GeoJSONSourceSpecification['data'] => ({
+  type: 'FeatureCollection',
+  features: lit.map((l) => ({
+    type: 'Feature',
+    properties: { tip: `${l.name ?? 'Unnamed place'} · near ${both(l.near)}` },
+    geometry: { type: 'Point', coordinates: realToImage(meta.projection, l.lon, l.lat) },
+  })),
+})
+
+const homePgs = (meta: DatasetMeta, homes: HomesLayer): maplibregl.GeoJSONSourceSpecification['data'] => ({
+  type: 'FeatureCollection',
+  features: homes.pgs.map((d) => ({
+    type: 'Feature',
+    properties: { id: d.id, verdict: d.verdict, tip: d.tip },
+    geometry: { type: 'Point', coordinates: realToImage(meta.projection, d.lon, d.lat) },
+  })),
+})
+
+const homeOpenPg = (meta: DatasetMeta, homes: HomesLayer): maplibregl.GeoJSONSourceSpecification['data'] => {
+  const o = homes.openPg
+  if (!o) return EMPTY
+  const at = (role: string, lon: number, lat: number, tip: string) => ({
+    type: 'Feature' as const,
+    properties: { role, tip },
+    geometry: { type: 'Point' as const, coordinates: realToImage(meta.projection, lon, lat) },
+  })
+  return {
+    type: 'FeatureCollection',
+    features: [at('open', o.lon, o.lat, o.name), ...o.others.map((x) => at('other', x.lon, x.lat, `Another listing of ${o.name}`))],
+  }
+}
+
+const homeDots = (meta: DatasetMeta, homes: HomesLayer): maplibregl.GeoJSONSourceSpecification['data'] => ({
+  type: 'FeatureCollection',
+  features: homes.dots.map((d) => ({
+    type: 'Feature',
+    properties: { id: d.id, name: d.name, verdict: d.verdict },
+    geometry: { type: 'Point', coordinates: realToImage(meta.projection, d.lon, d.lat) },
+  })),
+})
+
+/** Show the map tooltip with `text` at `point`, or hide it. */
+function showTip(el: HTMLDivElement | null, text: string | null, point?: maplibregl.Point) {
+  if (!el) return
+  el.hidden = !text
+  if (text && point) {
+    el.textContent = text
+    el.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y)}px)`
+  }
+}
 
 const sitePoints = (meta: DatasetMeta, corporate: Corporate | null): maplibregl.GeoJSONSourceSpecification["data"] => ({
   type: 'FeatureCollection',
@@ -242,24 +488,17 @@ export function MapView(props: Props) {
     ;(window as unknown as { __map: maplibregl.Map }).__map = map // for browser tests
 
     // ---- hover: any building gets a faint rim; a company building a bright one and its name
-    const tip = (text: string | null, point?: maplibregl.Point) => {
-      const el = tooltip.current
-      if (!el) return
-      el.hidden = !text
-      if (text && point) {
-        el.textContent = text
-        el.style.transform = `translate(${Math.round(point.x)}px, ${Math.round(point.y)}px)`
-      }
-    }
+    const tip = (text: string | null, point?: maplibregl.Point) => showTip(tooltip.current, text, point)
     map.on('mousemove', 'buildings-hit', (e: MapLayerMouseEvent) => {
       const f = e.features?.[0]
       if (!f) return
       const id = String(f.properties.id)
       const sites = live.current.corporate?.byBuilding.get(id)
+      const home = live.current.homes?.names.get(id)
       map.getCanvas().style.cursor = 'pointer'
       map.setFilter('buildings-hover', sites ? NONE : idsFilter([id]))
       map.setFilter('corp-hover', sites ? idsFilter([id]) : NONE)
-      tip(sites ? sites.map((s) => siteTitle(s) + (s.status === 'unverified' ? ' (unverified)' : '')).join(' · ') : null, e.point)
+      tip(home ?? (sites ? sites.map((s) => siteTitle(s) + (s.status === 'unverified' ? ' (unverified)' : '')).join(' · ') : null), e.point)
     })
     map.on('mouseleave', 'buildings-hit', () => {
       map.getCanvas().style.cursor = ''
@@ -276,7 +515,42 @@ export function MapView(props: Props) {
       map.getCanvas().style.cursor = ''
       tip(null)
     })
+    // Residential dots (their layer exists only while the mode is on; MapLibre skips a missing layer).
+    map.on('mousemove', 'homes-dot', (e: MapLayerMouseEvent) => {
+      map.getCanvas().style.cursor = 'pointer'
+      tip(String(e.features?.[0]?.properties.name ?? ''), e.point)
+    })
+    map.on('mouseleave', 'homes-dot', () => {
+      map.getCanvas().style.cursor = ''
+      tip(null)
+    })
+    map.on('mousemove', 'homes-lit', (e: MapLayerMouseEvent) => tip(String(e.features?.[0]?.properties.tip ?? ''), e.point))
+    map.on('mouseleave', 'homes-lit', () => tip(null))
+    for (const layer of ['homes-pg', 'homes-pg-alt']) {
+      map.on('mousemove', layer, (e: MapLayerMouseEvent) => {
+        if (layer === 'homes-pg') map.getCanvas().style.cursor = 'pointer'
+        tip(String(e.features?.[0]?.properties.tip ?? ''), e.point)
+      })
+      map.on('mouseleave', layer, () => {
+        map.getCanvas().style.cursor = ''
+        tip(null)
+      })
+    }
     map.on('click', (e: MapMouseEvent) => {
+      if (map.getLayer('homes-pg')) {
+        const pg = map.queryRenderedFeatures(e.point, { layers: ['homes-pg'] })[0]
+        if (pg) {
+          live.current.onSelectSociety(String(pg.properties.id))
+          return
+        }
+      }
+      if (map.getLayer('homes-dot') && map.getZoom() < DOT_FADE[1]) {
+        const dot = map.queryRenderedFeatures(e.point, { layers: ['homes-dot'] })[0]
+        if (dot) {
+          live.current.onSelectSociety(String(dot.properties.id))
+          return
+        }
+      }
       if (map.getZoom() < DOT_FADE[0]) {
         const dot = map.queryRenderedFeatures(e.point, { layers: ['site-dot'] })[0]
         const site = dot && live.current.corporate?.byId.get(String(dot.properties.site))
@@ -342,25 +616,49 @@ export function MapView(props: Props) {
     /** Room around a flight's target: clear of the card (left, or a bottom sheet on phones) and the top bar. */
     const flightPadding = (tall: boolean) =>
       window.innerWidth < 720
-        ? { top: 150, bottom: Math.round(window.innerHeight * 0.45), left: 30, right: 30 }
+        ? // Residential mode's panel fills the bottom sheet (up to 58 % of the screen); other cards are shorter.
+          { top: 150, bottom: Math.round(window.innerHeight * (live.current.homes ? 0.6 : 0.45)), left: 30, right: 30 }
         : // Points are at ground level and buildings rise above them: leave more room at the top.
-          { top: tall ? 260 : 140, bottom: 90, left: live.current.leftInset + 80, right: 120 }
+          { top: tall ? 260 : 140, bottom: Math.max(90, live.current.bottomInset + 80), left: live.current.leftInset + 80, right: 120 }
+    /** Fly to fit real-world points, close enough to read a building. */
+    const fitReal = (real: number[][]) => {
+      const pts = real.map(([lon, lat]) => realToImage(p, lon, lat))
+      const xs = pts.map((q) => q[0])
+      const ys = pts.map((q) => q[1])
+      const pad = flightPadding(true)
+      map.fitBounds(
+        [
+          [Math.min(...xs), Math.min(...ys)],
+          [Math.max(...xs), Math.max(...ys)],
+        ],
+        { padding: pad, maxZoom: native - 1.2, duration: 1800, essential: true },
+      )
+    }
     live.current.onReady({
       zoomIn: () => map.zoomIn(ease),
       zoomOut: () => map.zoomOut(ease),
       resetView: () => map.fitBounds(boundsOf(meta), { padding: cityPadding(), duration: 1200 }),
-      flyToSite: (site) => {
-        const pts = [...site.buildings.map((b) => [b.lon, b.lat]), [site.lon, site.lat]].map(([lon, lat]) => realToImage(p, lon, lat))
-        const xs = pts.map((q) => q[0])
-        const ys = pts.map((q) => q[1])
-        const pad = flightPadding(true)
-        map.fitBounds(
-          [
-            [Math.min(...xs), Math.min(...ys)],
-            [Math.max(...xs), Math.max(...ys)],
-          ],
-          { padding: pad, maxZoom: native - 1.2, duration: 1800, essential: true },
-        )
+      flyToSite: (site) => fitReal([...site.buildings.map((b) => [b.lon, b.lat]), [site.lon, site.lat]]),
+      fitPoints: (points) => {
+        if (points.length) fitReal(points)
+      },
+      buildingGround: (id, height) => {
+        // Every loaded piece of the silhouette (vector tiles cut features at tile edges).
+        const filter = (vector ? ['==', ['get', 'id'], id] : ['all', ['==', ['get', 'layer'], 'building'], ['==', ['get', 'id'], id]]) as maplibregl.FilterSpecification
+        const parts = map.querySourceFeatures('overlay', vector ? { sourceLayer: 'building', filter } : { filter })
+        const box: [number, number, number, number] = [Infinity, Infinity, -Infinity, -Infinity]
+        for (const f of parts) {
+          const g = f.geometry
+          const coords = g.type === 'Polygon' ? g.coordinates.flat() : g.type === 'MultiPolygon' ? g.coordinates.flat(2) : []
+          for (const [lon, lat] of coords) {
+            const [x, y] = lngLatToArt(p, lon, lat)
+            box[0] = Math.min(box[0], x)
+            box[1] = Math.min(box[1], y)
+            box[2] = Math.max(box[2], x)
+            box[3] = Math.max(box[3], y)
+          }
+        }
+        return Number.isFinite(box[0]) ? silhouetteGround(p, box, height) : null
       },
       flyToPlace: (place) => {
         const zoom = native - (place.buildingId ? 1.2 : PLACE_ZOOM[place.cat] ?? 1.4)
@@ -442,6 +740,83 @@ export function MapView(props: Props) {
     // The key captures `ids` and `unverified`; a new array with the same ids needs no update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlightKey])
+
+  // Residential mode: its layers exist only while it is on, so without it the style is exactly as before.
+  const homes = props.homes
+  const homesKey = homes
+    ? [
+        homes.match,
+        homes.likely,
+        homes.unknown,
+        homes.selected,
+        homes.dots.map((d) => `${d.id}:${d.verdict}`),
+        homes.pgs.map((d) => `${d.id}:${d.verdict}`),
+        homes.openPg ? [homes.openPg.name, homes.openPg.lon, homes.openPg.lat] : [],
+      ]
+        .map((x) => x.join(','))
+        .join('|')
+    : ''
+  const homesLook = useRef<Look | null>(null)
+  useEffect(() => {
+    whenReady(mapRef.current, (map) => {
+      if (map.getSource('homes') && (!homes || homesLook.current !== look)) {
+        for (const id of [...HOME_DOTS, ...HOME_LINES]) if (map.getLayer(id)) map.removeLayer(id)
+        for (const id of HOME_SOURCES) if (map.getSource(id)) map.removeSource(id)
+        for (const id of PG_IMAGES) if (map.hasImage(id)) map.removeImage(id)
+      }
+      if (!homes) return
+      if (!map.getSource('homes')) {
+        for (const id of HOME_SOURCES) map.addSource(id, { type: 'geojson', data: EMPTY })
+        for (const [id, image] of Object.entries(pgImages(look))) map.addImage(id, image, { pixelRatio: PG_PX })
+        // Footprints under the hover and selection outlines; dots under the search pin.
+        for (const l of homeLayers(meta, look)) map.addLayer(l, HOME_DOTS.includes(l.id) ? 'pin-halo' : 'buildings-hover')
+        homesLook.current = look
+      }
+      map.getSource<GeoJSONSource>('homes')?.setData(homeDots(meta, homes))
+      map.getSource<GeoJSONSource>('homes-pg')?.setData(homePgs(meta, homes))
+      map.getSource<GeoJSONSource>('homes-pg-open')?.setData(homeOpenPg(meta, homes))
+      map.setFilter('homes-match-fill', idsFilter(homes.match))
+      map.setFilter('homes-match-line', idsFilter(homes.match))
+      map.setFilter('homes-likely-line', idsFilter(homes.likely))
+      map.setFilter('homes-unknown-casing', idsFilter(homes.unknown))
+      map.setFilter('homes-unknown-line', idsFilter(homes.unknown))
+      map.setFilter('homes-open', idsFilter(homes.selected))
+    })
+    // The key captures the layer contents; the names only feed the hover tip (read live).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homesKey, look, meta])
+
+  // Places lit by a comparison row (after the effect above, which may have just re-created their source).
+  const lit = homes?.lit
+  const litKey = lit?.map((l) => `${l.id}:${l.near.join('')}`).join(',') ?? ''
+  useEffect(() => {
+    whenReady(mapRef.current, (map) => map.getSource<GeoJSONSource>('homes-lit')?.setData(homeLit(meta, lit ?? [])))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [litKey, homesKey, look, meta])
+
+  // Compared homes: numbered markers (HTML, since the style has no font for map text).
+  const compare = homes?.compare
+  const compareKey = compare?.map((c) => c.id).join(',') ?? ''
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !compare?.length) return
+    const markers = compare.map((c, i) => {
+      const el = document.createElement('button')
+      el.className = 'cmp-marker'
+      el.textContent = String(i + 1)
+      el.title = c.name
+      el.setAttribute('aria-label', `${i + 1}: ${c.name}`)
+      el.addEventListener('click', (e) => {
+        e.stopPropagation()
+        live.current.onSelectSociety(c.id)
+      })
+      // Lifted by the pointer drawn under the box (.cmp-marker::after), so its tip is on the point.
+      return new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -6] }).setLngLat(realToImage(meta.projection, c.lon, c.lat)).addTo(map)
+    })
+    return () => markers.forEach((m) => m.remove())
+    // The key captures the ids and their order; names are fixed per id.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [compareKey, meta])
 
   // Switch look in place: same archive, other protocol; the view stays where it is.
   const artName = useRef(meta.art ?? 'art.pmtiles')

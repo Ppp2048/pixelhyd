@@ -12,6 +12,7 @@
   --confirmed: #2f7d4f;
   --unverified: #9a6a00;
   --risk: #a3402a;
+  --lit: #2d6a9a; /* places lit by a comparison row (residential mode) */
   --radius: 12px;
   --shadow: 0 8px 28px rgba(40, 30, 15, 0.18), 0 1px 2px rgba(40, 30, 15, 0.12);
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -51,6 +52,7 @@ a:hover { text-decoration: underline; }
   --confirmed: #74cf9f;
   --unverified: #e8c27a;
   --risk: #e58a73;
+  --lit: #8fd0ff;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 /* Dusk: a soft vignette draws the eye to the middle of the view (above the map, below the panels). */
@@ -252,6 +254,115 @@ details[open] > summary::after { transform: rotate(90deg); }
 .app .maplibregl-ctrl-attrib.maplibregl-compact-show { padding: 2px 28px 2px 8px; }
 .look-dusk .maplibregl-ctrl-attrib-button { filter: invert(0.85); }
 
+/* ---------------------------------------------------------------- residential mode (off by default) */
+/* The card's one extra button; everything else below appears only while the mode is on. */
+.action {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px; padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 10px; cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--ink); font-weight: 600;
+  transition: background 120ms var(--ease);
+}
+.action:hover { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+.homes .company-head .sub { margin: 0 0 1px; }
+.tally { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.homes .filter { color: var(--ink); }
+.field-head { display: flex; justify-content: space-between; gap: 8px; }
+.field-head .out { color: var(--risk); }
+.field small { font-size: 11.5px; }
+/* Verdicts: filled = match, outline = likely, dashed = unknown (as on the map). */
+.chip.v-match { color: var(--confirmed); background: color-mix(in srgb, var(--confirmed) 22%, transparent); }
+.chip.v-likely { color: var(--confirmed); }
+.chip.v-likely::before { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+.chip.v-unknown { color: var(--unverified); border-style: dashed; background: color-mix(in srgb, var(--unverified) 10%, transparent); }
+.chip.v-no { color: var(--risk); }
+.dot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+.dot.v-match { background: var(--confirmed); }
+.dot.v-likely { border: 1.5px solid var(--confirmed); }
+.dot.v-unknown { border: 1.5px dashed var(--unverified); }
+.dot.v-no { background: var(--risk); }
+.home-list { list-style: none; margin: 0; padding: 0; }
+.home-list button {
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 6px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--ink); text-align: left; font-size: 13px; cursor: pointer;
+}
+.home-list button:hover { background: var(--hover); }
+.home-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* PGs are diamonds in the list, as on the map; in the mixed list they also carry a tag. */
+.dot.pg { border-radius: 2px; transform: rotate(45deg) scale(0.86); }
+.type-tag { flex: none; padding: 0 5px; border: 1px solid var(--edge); border-radius: 4px; color: var(--muted); font-size: 10.5px; }
+.why { list-style: none; display: grid; gap: 7px; margin: 12px 0 0; padding: 0; font-size: 13px; }
+.why li { display: grid; grid-template-columns: 9px 70px 1fr; gap: 9px; align-items: baseline; }
+.why .dot { transform: translateY(1px); }
+.action[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.action:disabled { opacity: 0.55; cursor: default; }
+.action:disabled:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+
+/* Comparison: a glass strip along the bottom, between the card and the map controls. */
+.compare-wrap {
+  position: absolute; z-index: 4; left: calc(2 * var(--gap) + 348px); right: calc(2 * var(--gap) + 44px); bottom: 36px;
+  display: flex; justify-content: center; pointer-events: none;
+}
+.compare {
+  /* Column widths; --cols (the number of societies) is set on the element. */
+  --label-w: 112px; --col-w: 176px;
+  pointer-events: auto; max-width: 100%; min-width: min(100%, 440px); padding: 8px 10px 8px 12px;
+}
+.compare .panel-head { margin-bottom: 2px; }
+.cmp-tools { display: flex; gap: 2px; }
+.compare-scroll { max-height: min(30vh, 270px); overflow: auto; overscroll-behavior: contain; }
+.compare table {
+  width: calc(var(--label-w) + var(--cols, 1) * var(--col-w)); min-width: 100%; table-layout: fixed;
+  border-collapse: collapse; font-size: 13px;
+}
+.compare th, .compare td { padding: 4px 8px; text-align: left; vertical-align: top; font-weight: inherit; }
+.compare thead > tr > * { position: sticky; top: 0; z-index: 1; background: var(--glass-solid); border-bottom: 1px solid var(--edge); width: var(--col-w); }
+.compare thead > tr > td:first-child { width: var(--label-w); }
+.compare tbody th { color: var(--muted); }
+.compare tbody tr + tr > * { border-top: 1px solid var(--edge); }
+.compare .lightable:hover, .compare .lightable.lit { background: var(--hover); }
+.cmp-sub { font-size: 12px; }
+.cmp-head { display: flex; align-items: center; gap: 7px; }
+/* Names take up to two lines in narrow columns. */
+.cmp-name {
+  flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--ink); font-weight: 600; text-align: left;
+  cursor: pointer; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25;
+}
+.cmp-name:hover { text-decoration: underline; }
+.cmp-remove.icon-btn.ghost { flex: none; width: 22px; height: 22px; border-radius: 6px; }
+/* Rows that light their places: a small ring in the lit colour, filled while pressed. */
+.row-btn { display: inline-flex; align-items: center; gap: 7px; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.row-btn::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--lit); }
+.row-btn[aria-pressed="true"]::before, .lightable:hover .row-btn::before { background: var(--lit); }
+.lightable:hover .row-btn, .row-btn[aria-pressed="true"] { color: var(--ink); }
+/* The note wraps to the table's width instead of widening the strip (width 0, then stretched). */
+.cmp-note { width: 0; min-width: 100%; margin: 6px 0 0; padding-top: 6px; border-top: 1px solid var(--edge); line-height: 1.35; }
+/* Folded (phones): one bar with the numbers and any lit row. */
+.compare.folded { display: flex; align-items: center; gap: 6px; width: 100%; padding: 4px 4px 4px 6px; }
+.cmp-open {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 6px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--ink); font-weight: 600; cursor: pointer;
+}
+.cmp-open:hover { background: var(--hover); }
+.cmp-open svg { margin-right: 2px; }
+.compare.folded .filter { gap: 6px; }
+/* A compared society's number: in the strip, in the list and as its marker on the map (ink on paper, inverted). */
+.cmp-num {
+  flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 6px;
+  background: var(--ink); color: var(--paper); font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.cmp-num.small-num { width: 18px; height: 18px; font-size: 11px; }
+.cmp-marker {
+  position: relative; display: grid; place-items: center; width: 26px; height: 26px; padding: 0;
+  border: 2px solid var(--paper); border-radius: 8px; background: var(--ink); color: var(--paper);
+  font: 700 13px/1 system-ui, sans-serif; cursor: pointer; box-shadow: var(--shadow);
+}
+/* The pointer under the number, its tip on the society's ground point. */
+.cmp-marker::after {
+  content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -5px;
+  border: solid transparent; border-width: 6px 5px 0; border-top-color: var(--ink);
+}
+
 @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @keyframes sweep { from { left: -30%; } to { left: 100%; } }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -275,6 +386,28 @@ details[open] > summary::after { transform: rotate(90deg); }
   .card::before { content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--edge); }
   .has-card .maplibregl-ctrl-bottom-right { display: none; }
   .visits { display: none; } /* in the settings panel instead */
+  /* The comparison folds into a bar under the top bar, and opens as a sheet over the card. */
+  .compare-wrap { left: var(--gap); right: var(--gap); top: calc(var(--gap) + 52px); bottom: auto; }
+  .compare.sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; max-height: 72%;
+    border-radius: 16px 16px 0 0; padding: 14px 10px calc(10px + env(safe-area-inset-bottom)); animation: sheet 220ms var(--ease);
+  }
+  .compare.sheet::before { content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--edge); }
+  .compare.sheet .compare-scroll { flex: 1; min-height: 0; max-height: none; }
+  .compare.sheet table { width: 100%; }
+  .compare.sheet thead > tr > * { width: auto; }
+  .compare.sheet thead > tr > td:first-child { width: 92px; }
+  .compare.sheet tbody th { font-size: 12px; }
+  .compare.sheet .row-btn { gap: 5px; }
+  .compare.sheet th, .compare.sheet td { padding: 5px 5px; }
+  /* Narrow columns: number and remove on one line, the name (up to two lines) below. */
+  .compare.sheet .cmp-head { flex-wrap: wrap; gap: 4px; }
+  .compare.sheet .cmp-name { order: 3; flex-basis: 100%; font-size: 12.5px; }
+  .compare.sheet .cmp-remove { margin-left: auto; }
+  .compare.sheet .chip { white-space: normal; font-size: 11px; padding: 1px 6px; }
+}
+@media (max-width: 1240px) {
+  .compare { --label-w: 96px; --col-w: 150px; }
 }
 @media (min-width: 721px) {
   .visits-inline { display: none; }
