@@ -7,6 +7,7 @@ import {
   imageToReal,
   lngLatToArt,
   realToImage,
+  silhouetteGround,
   utmToWgs,
   wgsToUtm,
   type ProjectionMeta,
@@ -70,5 +71,15 @@ describe('isometric art space', () => {
     const [e1, n1] = wgsToUtm(78.3822, 17.4499)
     const [e2, n2] = wgsToUtm(lon, lat)
     expect(Math.hypot(e1 - e2, n1 - n2)).toBeLessThan(0.01)
+  })
+  it('finds the ground under a tall building from its silhouette box', () => {
+    // A 40 m square footprint, 60 m tall: the silhouette spans the footprint at ground level and its roof.
+    const [ce, cn] = wgsToUtm(78.3822, 17.4499)
+    const corners = [[-20, -20], [20, -20], [20, 20], [-20, 20]].flatMap(([de, dn]) => [0, 60].map((z) => groundToArt(meta, ce + de, cn + dn, z)))
+    const xs = corners.map((c) => c[0])
+    const ys = corners.map((c) => c[1])
+    const [lon, lat] = silhouetteGround(meta, [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)], 60)
+    const [e, n] = wgsToUtm(lon, lat)
+    expect(Math.hypot(e - ce, n - cn)).toBeLessThan(0.01)
   })
 })

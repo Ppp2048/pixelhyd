@@ -141,3 +141,13 @@ export function imageToReal(p: ProjectionMeta, lon: number, lat: number): [numbe
 
 /** MapLibre zoom at which one art pixel equals one CSS pixel (raster tileSize 256 → world 512·2^z). */
 export const nativeZoom = (p: ProjectionMeta) => p.zmax - 1
+
+/**
+ * Ground point under a building drawn as a silhouette (footprint at ground level joined to its roof):
+ * the middle of the silhouette's art-pixel box, lowered by half the roof's rise. [lon, lat]
+ */
+export function silhouetteGround(p: ProjectionMeta, box: [number, number, number, number], height: number): [number, number] {
+  const [x0, y0, x1, y1] = box
+  const [e, n] = artToGround(p, (x0 + x1) / 2, (y0 + y1) / 2 + (p.v * height) / 2)
+  return utmToWgs(e, n)
+}

@@ -54,3 +54,12 @@ export const osmUrl = (osmId: string | null) => {
   const type = { w: 'way', r: 'relation', n: 'node' }[osmId[0]]
   return type ? `https://www.openstreetmap.org/${type}/${osmId.slice(1)}` : null
 }
+
+/** A source link's label: its host name without "www.". */
+export const host = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}

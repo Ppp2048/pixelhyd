@@ -1,7 +1,8 @@
 """The citywide place index for search: localities, landmarks, transit, campuses, streets, named
 buildings and more, from OpenStreetMap.
 
-Inputs: every block's osm.json (already downloaded for the art) plus one extra download of the
+Inputs: every OSM download made for the art (the blocks and the first core tiles; see
+fetch.osm_downloads) plus one extra download of the
 features the art does not need (place names, tourism, historic sites, stations): places_osm.json.
 Named OSM buildings are tied to the map's own building ids, so search can outline them.
 
@@ -10,7 +11,6 @@ Output: web/public/data/places.json, compact rows the app loads when search is f
 
 from __future__ import annotations
 
-import glob
 import json
 import re
 import sys
@@ -148,9 +148,10 @@ def _norm(s: str) -> str:
 
 def collect() -> tuple[list[dict], list[dict]]:
     """Named features worth searching (one per OSM element) and named street pieces."""
+    from .fetch import osm_downloads
     from .tiles import owner_of
 
-    files = sorted(glob.glob(str(_raw() / "blocks" / "*" / "osm.json")))
+    files = [str(f) for f in osm_downloads(_raw())]
     extra = _raw() / "places_osm.json"
     if extra.exists():
         files.append(str(extra))

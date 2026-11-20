@@ -1,7 +1,7 @@
 import { sitePlace, siteTitle } from '../lib/corporate'
 import type { BuildingProps, CorporateSite } from '../types'
-import { osmUrl, type Place } from '../lib/places'
-import { BuildingIcon, CloseIcon, ExternalIcon } from './icons'
+import { host, osmUrl, type Place } from '../lib/places'
+import { BuildingIcon, CloseIcon, ExternalIcon, HomeIcon } from './icons'
 
 const CONFIDENCE_TEXT: Record<string, string> = {
   verified: 'Measured height from OpenStreetMap/Overture',
@@ -21,14 +21,6 @@ const SOURCE_TEXT: Record<string, string> = {
 const STATUS_TEXT: Record<CorporateSite['status'], string> = {
   confirmed: 'Location confirmed',
   unverified: 'Unverified location',
-}
-
-const host = (url: string) => {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return url
-  }
 }
 
 function CompanySection({ site, building }: { site: CorporateSite; building: BuildingProps | null }) {
@@ -182,8 +174,8 @@ function PlaceSection({ place }: { place: Place }) {
 
 /** The selected place: a searched place, then its companies (if any), then the building itself. */
 export function Inspector({
-  building, place, sites, onClose,
-}: { building: BuildingProps | null; place: Place | null; sites: CorporateSite[]; onClose: () => void }) {
+  building, place, sites, onClose, onFindHomes,
+}: { building: BuildingProps | null; place: Place | null; sites: CorporateSite[]; onClose: () => void; onFindHomes?: () => void }) {
   return (
     <aside className="panel card" aria-live="polite" aria-label={sites.length ? 'Company details' : place ? 'Place details' : 'Building details'}>
       <button className="icon-btn ghost card-close" onClick={onClose} aria-label="Close details">
@@ -215,6 +207,11 @@ export function Inspector({
             <BuildingFacts building={building} />
           </section>
         )
+      ) : null}
+      {onFindHomes ? (
+        <button className="action" onClick={onFindHomes}>
+          <HomeIcon size={16} /> Find homes near here
+        </button>
       ) : null}
     </aside>
   )

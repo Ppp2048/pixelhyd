@@ -1,0 +1,886 @@
+{
+ "about": "PGs, hostels and co-living homes for the home finder. Listings come from Overture Maps places (pgs.py has the rules). 'details' holds facts read from an operator's own page, each with its source and the date read; 'rejected' lists Overture listings reviewed and found not to be PGs. Operators with read: false are never read and may not be cited.",
+ "operators": [
+  {
+   "id": "stanza",
+   "name": "Stanza Living",
+   "site": "https://www.stanzaliving.com",
+   "domains": [
+    "stanzaliving.com"
+   ],
+   "kind": "pg",
+   "read": false,
+   "basis": "Terms of use (updated 25 June 2022) forbid automated access by robots, spiders or scrapers and reuse of site data without written consent.",
+   "terms": "https://www.stanzaliving.com/terms-and-conditions",
+   "checked": "2026-11-20",
+   "property_paths": [
+    "/hyderabad/"
+   ],
+   "flat_paths": [
+    "/apartments/",
+    "/flat-for-rent"
+   ],
+   "gender_paths": {
+    "/female/": "women",
+    "/male/": "men",
+    "/co_ed/": "mixed"
+   }
+  },
+  {
+   "id": "zolo",
+   "name": "Zolo",
+   "site": "https://zolostays.com",
+   "domains": [
+    "zolostays.com"
+   ],
+   "kind": "pg",
+   "read": true,
+   "basis": "robots.txt allows property pages (query strings are disallowed, so links are read without them); the terms have no clause on automated reading or reuse.",
+   "terms": "https://zolostays.com/terms",
+   "checked": "2026-11-20",
+   "property_paths": [
+    "/pg-hostel-near-"
+   ]
+  },
+  {
+   "id": "settl",
+   "name": "Settl.",
+   "site": "https://thesettl.com",
+   "domains": [
+    "thesettl.com"
+   ],
+   "kind": "co-living",
+   "read": true,
+   "basis": "robots.txt disallows nothing; no terms of use are published.",
+   "checked": "2026-11-20",
+   "property_paths": [
+    "/pg/hyderabad/"
+   ]
+  },
+  {
+   "id": "helloworld",
+   "name": "HelloWorld",
+   "site": "https://www.thehelloworld.com",
+   "domains": [
+    "thehelloworld.com"
+   ],
+   "kind": "co-living",
+   "read": true,
+   "basis": "robots.txt allows ClaudeBot and property pages; no terms of use are published.",
+   "checked": "2026-11-20",
+   "property_paths": [
+    "/coliving-in-hyderabad/"
+   ]
+  },
+  {
+   "id": "colive",
+   "name": "Colive",
+   "site": "https://www.colive.com",
+   "domains": [
+    "colive.in",
+    "colive.com"
+   ],
+   "kind": "co-living",
+   "read": false,
+   "basis": "robots.txt disallows ClaudeBot from the whole site, and the terms forbid using site content in a machine-readable database.",
+   "terms": "https://www.colive.com/terms-and-conditions",
+   "checked": "2026-11-20"
+  },
+  {
+   "id": "aadhya",
+   "name": "Aadhya Living",
+   "site": "https://aadhyaliving.in",
+   "domains": [
+    "aadhyaliving.in"
+   ],
+   "kind": "pg",
+   "read": true,
+   "basis": "robots.txt allows everything; no terms of use are published. The site has no per-property pages.",
+   "checked": "2026-11-20"
+  }
+ ],
+ "details": [
+  {
+   "id": "pg-helloworld-falak",
+   "name": "HelloWorld Falak",
+   "operator": "helloworld",
+   "overture": [
+    "6e277c3f-b3ec-4dad-b871-c0d409fb6bef"
+   ],
+   "status": "confirmed",
+   "page": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "Sri Sai Lakshmi Plaza, Plot No - 1758, Survey no - 78, Gokul plots, Venkataramana colony, Hafeezpet village, Serilingampally mandal, KPHB, Kukatpally, Hyderabad, Telangana 500085",
+    "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+   },
+   "rent": [
+    {
+     "sharing": "other",
+     "label": "Classic sharing",
+     "from_inr": 8000,
+     "period": "month",
+     "starting": true,
+     "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+    },
+    {
+     "sharing": "single",
+     "label": "Classic private",
+     "from_inr": 16000,
+     "period": "month",
+     "starting": false,
+     "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+    },
+    {
+     "sharing": "other",
+     "label": "Comfort sharing",
+     "from_inr": 7000,
+     "period": "month",
+     "starting": true,
+     "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+    },
+    {
+     "sharing": "single",
+     "label": "Comfort private",
+     "from_inr": 17000,
+     "period": "month",
+     "starting": false,
+     "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+    }
+   ],
+   "deposit": {
+    "value": "1 month rent",
+    "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+   },
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+    },
+    "laundry": {
+     "value": true,
+     "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://www.thehelloworld.com/coliving-in-hyderabad/helloworld-falak-pg-in-hyderabad-kukatpally-611"
+    }
+   },
+   "note": "Minimum stay one month. The page does not say who may stay."
+  },
+  {
+   "id": "pg-zolo-berry",
+   "name": "Zolo Berry",
+   "operator": "zolo",
+   "overture": [
+    "acbe1464-156d-4400-8305-3e0e2d4f458d"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "Plot no 105-A, Plot No: 106, Survey no. 11/19, 11/20, 11/21, Ayyappa Society, Siddhi Vinayak Nagar, Madhapur, Hyderabad, Telangana 500081",
+    "source": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry"
+   },
+   "gender": {
+    "value": "mixed",
+    "source": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry"
+   },
+   "rent": [
+    {
+     "sharing": "single",
+     "label": "Private Room",
+     "from_inr": 22446,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry"
+    },
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 11658,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry"
+    }
+   ],
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry"
+    },
+    "ac": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-madhapur-in-hyderabad-zolo_berry-zbry"
+    }
+   },
+   "note": "Electricity is extra, billed on actual use plus GST. The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-bourbon",
+   "name": "Zolo Bourbon",
+   "operator": "zolo",
+   "overture": [
+    "9259e276-c38d-41d4-9fdc-cbf5bf53ec45"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-gachibowli-in-hyderabad-zolo_bourbon-zhd040",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "2, 47/1/90, Street Number 20, Telecom Nagar Extension, Gachibowli, Hyderabad, Telangana 500032",
+    "source": "https://zolostays.com/pg-hostel-near-gachibowli-in-hyderabad-zolo_bourbon-zhd040"
+   },
+   "gender": {
+    "value": "mixed",
+    "source": "https://zolostays.com/pg-hostel-near-gachibowli-in-hyderabad-zolo_bourbon-zhd040"
+   },
+   "rent": [
+    {
+     "sharing": "single",
+     "label": "Private Room",
+     "from_inr": 15996,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-gachibowli-in-hyderabad-zolo_bourbon-zhd040"
+    },
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 8428,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-gachibowli-in-hyderabad-zolo_bourbon-zhd040"
+    }
+   ],
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-gachibowli-in-hyderabad-zolo_bourbon-zhd040"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-gachibowli-in-hyderabad-zolo_bourbon-zhd040"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-gachibowli-in-hyderabad-zolo_bourbon-zhd040"
+    }
+   },
+   "note": "Electricity is extra, billed on actual use plus GST. The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-fort-view",
+   "name": "Zolo Fort View",
+   "operator": "zolo",
+   "overture": [
+    "66a39793-278a-4cf2-8e93-46c0e333dff7"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-manikonda-in-hyderabad-zolo_fort_view-zofrv",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "H No: 9-5-2/A/99, Ibrahimbagh, Golconda mandal, Hyderabad, Telangana 500031",
+    "source": "https://zolostays.com/pg-hostel-near-manikonda-in-hyderabad-zolo_fort_view-zofrv"
+   },
+   "gender": {
+    "value": "mixed",
+    "source": "https://zolostays.com/pg-hostel-near-manikonda-in-hyderabad-zolo_fort_view-zofrv"
+   },
+   "rent": [
+    {
+     "sharing": "single",
+     "label": "Private Room",
+     "from_inr": 16426,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-manikonda-in-hyderabad-zolo_fort_view-zofrv"
+    },
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 8256,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-manikonda-in-hyderabad-zolo_fort_view-zofrv"
+    },
+    {
+     "sharing": "triple",
+     "label": "Three Sharing",
+     "from_inr": 7740,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-manikonda-in-hyderabad-zolo_fort_view-zofrv"
+    }
+   ],
+   "services": {
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-manikonda-in-hyderabad-zolo_fort_view-zofrv"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-manikonda-in-hyderabad-zolo_fort_view-zofrv"
+    }
+   },
+   "note": "Electricity is extra, billed on actual use plus GST. Food is left unstated: the page says food is not available and also lists homely food. The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-galway",
+   "name": "Zolo Galway",
+   "operator": "zolo",
+   "overture": [
+    "ada7a3fc-d16b-408a-a5dd-64285b9e6fd3"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-gopanpally_gachibowli-in-hyderabad-zolo_galway-zogalw",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "H.No 2-9, Gopanpally, Serilingampally, RR District, Telangana 500046",
+    "source": "https://zolostays.com/pg-hostel-near-gopanpally_gachibowli-in-hyderabad-zolo_galway-zogalw"
+   },
+   "gender": {
+    "value": "mixed",
+    "source": "https://zolostays.com/pg-hostel-near-gopanpally_gachibowli-in-hyderabad-zolo_galway-zogalw"
+   },
+   "rent": [
+    {
+     "sharing": "single",
+     "label": "Private Room",
+     "from_inr": 21887,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-gopanpally_gachibowli-in-hyderabad-zolo_galway-zogalw"
+    },
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 11266,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-gopanpally_gachibowli-in-hyderabad-zolo_galway-zogalw"
+    }
+   ],
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-gopanpally_gachibowli-in-hyderabad-zolo_galway-zogalw"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-gopanpally_gachibowli-in-hyderabad-zolo_galway-zogalw"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-gopanpally_gachibowli-in-hyderabad-zolo_galway-zogalw"
+    }
+   },
+   "note": "Electricity is extra, billed on actual use plus GST. The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-green-valley",
+   "name": "Zolo Green Valley",
+   "operator": "zolo",
+   "overture": [
+    "7d657573-c955-4187-9c7d-cde7d1dc451b"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "F964+893, Sri Ram Nagar, Kondapur, Hyderabad, Telangana 500084",
+    "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+   },
+   "gender": {
+    "value": "mixed",
+    "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+   },
+   "rent": [
+    {
+     "sharing": "single",
+     "label": "Private Room",
+     "from_inr": 16684,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+    },
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 8772,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+    }
+   ],
+   "deposit": {
+    "value": "one-month deposit",
+    "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+   },
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+    },
+    "ac": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-kondapur-in-hyderabad-zolo_green_valley-zhd036"
+    }
+   },
+   "note": "Electricity is extra, billed on actual use plus GST. The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-lakeview",
+   "name": "Zolo Lakeview",
+   "operator": "zolo",
+   "overture": [
+    "4a933c0c-d5a4-4543-8065-8faa3476a5bf"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "Plot 63, survey number 219 and 220, Padmashree Gardens layout, Gowlidoddy, Hyderabad, Telangana 500075",
+    "source": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv"
+   },
+   "gender": {
+    "value": "mixed",
+    "source": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv"
+   },
+   "rent": [
+    {
+     "sharing": "single",
+     "label": "Private Room",
+     "from_inr": 15996,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv"
+    },
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 8428,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv"
+    }
+   ],
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv"
+    },
+    "ac": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-gowlidoddy-in-hyderabad-zolo_lakeview-zolkv"
+    }
+   },
+   "note": "The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-sierra",
+   "name": "Zolo Sierra",
+   "operator": "zolo",
+   "overture": [
+    "8aeca309-7229-40c2-b874-b2452b13c7b3"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_sierra-zhd028",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "KPHB 6th Phase Rd, Kukatpally Housing Board Colony, Kukatpally, Hyderabad, Telangana 500072",
+    "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_sierra-zhd028"
+   },
+   "rent": [
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 8686,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_sierra-zhd028"
+    },
+    {
+     "sharing": "triple",
+     "label": "Three Sharing",
+     "from_inr": 6665,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_sierra-zhd028"
+    }
+   ],
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_sierra-zhd028"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_sierra-zhd028"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_sierra-zhd028"
+    }
+   },
+   "note": "Who may stay is left unstated: the page's tag says unisex but its description says gentlemen only. The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-silverstone",
+   "name": "Zolo Silverstone",
+   "operator": "zolo",
+   "overture": [
+    "3e7a4109-9efd-4f6d-ae51-9b05dc0ed0cf"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-miyapur-in-hyderabad-zolo_silverstone-zhd032",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "Mathrusree Nagar, Hafeezpet, Hyderabad, Telangana 500049",
+    "source": "https://zolostays.com/pg-hostel-near-miyapur-in-hyderabad-zolo_silverstone-zhd032"
+   },
+   "gender": {
+    "value": "men",
+    "source": "https://zolostays.com/pg-hostel-near-miyapur-in-hyderabad-zolo_silverstone-zhd032"
+   },
+   "rent": [
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 7920,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-miyapur-in-hyderabad-zolo_silverstone-zhd032"
+    },
+    {
+     "sharing": "triple",
+     "label": "Three Sharing",
+     "from_inr": 6600,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-miyapur-in-hyderabad-zolo_silverstone-zhd032"
+    }
+   ],
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-miyapur-in-hyderabad-zolo_silverstone-zhd032"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-miyapur-in-hyderabad-zolo_silverstone-zhd032"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-miyapur-in-hyderabad-zolo_silverstone-zhd032"
+    }
+   },
+   "note": "The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-sterling",
+   "name": "Zolo Sterling",
+   "operator": "zolo",
+   "overture": [
+    "1067f754-235e-4df6-9909-8707eb8bb456",
+    "db55c5be-b05d-4df4-b1c4-ba9bb1296086"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "Plot No.1127, Siyag Enclave, Cross Street 10, Siddiq Nagar, Hitech City, Hyderabad, Telangana 500081",
+    "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+   },
+   "gender": {
+    "value": "mixed",
+    "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+   },
+   "rent": [
+    {
+     "sharing": "single",
+     "label": "Private Room",
+     "from_inr": 16856,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+    },
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 8858,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+    },
+    {
+     "sharing": "triple",
+     "label": "Three Sharing",
+     "from_inr": 7826,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+    }
+   ],
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+    },
+    "ac": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-hitec_city-in-hyderabad-zolo_sterling-zhd031"
+    }
+   },
+   "note": "The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-styx",
+   "name": "Zolo Styx",
+   "operator": "zolo",
+   "overture": [
+    "7f7a8c77-3ae9-42c9-b179-a6d73324734e"
+   ],
+   "status": "confirmed",
+   "page": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001",
+   "checked": "2026-11-20",
+   "address": {
+    "value": "Plot no. 434 MIG-1, 1&2, Road Number 1, Kukatpally Housing Board Colony, Hyderabad, Telangana 500072",
+    "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001"
+   },
+   "gender": {
+    "value": "mixed",
+    "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001"
+   },
+   "rent": [
+    {
+     "sharing": "single",
+     "label": "Private Room",
+     "from_inr": 18189,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001"
+    },
+    {
+     "sharing": "double",
+     "label": "Two Sharing",
+     "from_inr": 8772,
+     "period": null,
+     "starting": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001"
+    }
+   ],
+   "services": {
+    "food": {
+     "value": false,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001"
+    },
+    "wifi": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001"
+    },
+    "ac": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001"
+    },
+    "housekeeping": {
+     "value": true,
+     "source": "https://zolostays.com/pg-hostel-near-kphb-in-hyderabad-zolo_styx-zhd001"
+    }
+   },
+   "note": "The page gives prices without a period."
+  },
+  {
+   "id": "pg-zolo-athena",
+   "name": "Zolo Athena",
+   "operator": "zolo",
+   "overture": [
+    "ac6ea25d-38c2-4589-a0d7-314430c5b214"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now shows a locality listing instead of the property."
+  },
+  {
+   "id": "pg-zolo-fortuna",
+   "name": "Zolo Fortuna",
+   "operator": "zolo",
+   "overture": [
+    "9fe54a3b-9cdc-47e6-a08e-c3ca8af7e0f5"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now shows a locality listing instead of the property."
+  },
+  {
+   "id": "pg-zolo-golf-edge",
+   "name": "Zolo Golf Edge",
+   "operator": "zolo",
+   "overture": [
+    "5365bc0f-fb34-42e0-ba63-fc5213774650"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now shows a locality listing instead of the property."
+  },
+  {
+   "id": "pg-zolo-ripple",
+   "name": "Zolo Ripple",
+   "operator": "zolo",
+   "overture": [
+    "e1de9d9f-8707-4228-8f3f-4728205f5d03"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now shows a locality listing instead of the property."
+  },
+  {
+   "id": "pg-zolo-rockwave",
+   "name": "Zolo Rockwave",
+   "operator": "zolo",
+   "overture": [
+    "f37ea3ba-7484-40a4-a0a9-49a10385a80d"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now shows a locality listing instead of the property."
+  },
+  {
+   "id": "pg-zolo-talisman",
+   "name": "Zolo Talisman",
+   "operator": "zolo",
+   "overture": [
+    "83bc9c40-cb03-4d4b-a449-98dc648b4de1"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now shows a locality listing instead of the property."
+  },
+  {
+   "id": "pg-zolo-grit",
+   "name": "Zolo Grit",
+   "operator": "zolo",
+   "overture": [
+    "1dfc510f-310f-4688-b78b-34c7e3af555b"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now says 'Page Not Found'."
+  },
+  {
+   "id": "pg-zolo-leo",
+   "name": "Zolo Leo",
+   "operator": "zolo",
+   "overture": [
+    "b3cfac3f-3598-4f44-b191-046a4e8a05e7"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now says 'Page Not Found'."
+  },
+  {
+   "id": "pg-zolo-orbit",
+   "name": "Zolo Orbit",
+   "operator": "zolo",
+   "overture": [
+    "a520067c-5cb7-45ca-a81d-c6a73f807522"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now says 'Page Not Found'."
+  },
+  {
+   "id": "pg-zolo-twins",
+   "name": "Zolo Twins",
+   "operator": "zolo",
+   "overture": [
+    "802b52b5-8058-4365-8327-b0f10c6c9bdd"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Zolo's page for it now says 'Page Not Found'."
+  },
+  {
+   "id": "pg-helloworld-mariegold",
+   "name": "HelloWorld Mariegold",
+   "operator": "helloworld",
+   "overture": [
+    "42a05e81-55e8-4c18-878c-1f71fdb35450"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "HelloWorld's page for it now returns 'not found' (404)."
+  },
+  {
+   "id": "pg-settl-bron",
+   "name": "Settl. Bron",
+   "operator": "settl",
+   "overture": [
+    "cf898760-bf66-4de1-bb20-2295da0c02c9"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Settl.'s page for it now says 'No properties found'."
+  },
+  {
+   "id": "pg-settl-gorbio",
+   "name": "Settl. Gorbio",
+   "operator": "settl",
+   "overture": [
+    "0c5c472d-5060-4d81-89b8-314324338466"
+   ],
+   "status": "unverified",
+   "gone": "2026-11-20",
+   "checked": "2026-11-20",
+   "note": "Settl.'s page for it now says 'No properties found'."
+  }
+ ],
+ "rejected": []
+}

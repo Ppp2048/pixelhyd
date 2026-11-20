@@ -297,5 +297,159 @@ pytest + Vitest + Playwright e2e, visual regression against our own approved bas
 | D9 | Vector tiles (Phase 3) | Pure-Python `mapbox-vector-tile`, or tippecanoe via Docker |
 | D10 | Label languages | English first, Telugu via HTML overlays |
 
+## 12. Workstreams on `feature/residential-discovery`
+
+[V] = checked in the data or the browser · [E] = estimate · snapshot: OSM 2026-11-15, Overture 2026-10-21.
+
+### 12.1 Status
+| Workstream | State |
+|---|---|
+| A. Residential discovery | M1–M9 done: societies data, amenities, drive-time grid, match rules, map highlights, society card, comparison of up to 3, phone layout. Mode off = baseline pixels. 56 pipeline and 73 web tests pass. Not committed. |
+| A+. PGs inside residential discovery | R1–R2 done (12.4): 120 PGs in the residential strip, 11 confirmed from operator pages, 30 probable, 79 unverified; drive times, metro and nearby counts in files of their own. Society files unchanged. R3 built (12.4): Show switch, PG filters, card, diamonds and mixed comparison. Not committed. |
+| B. Corporate offices | Seed of 10 companies, one record each. Only Microsoft is Confirmed (4 named OSM buildings) and Wells Fargo Unverified. The other 8 have no resolved building, which is why only Microsoft shows on the map. |
+| C. Map accuracy | Audited (12.2); nothing changed yet. |
+
+**Renderer:** an offline Python isometric renderer writes raster art PMTiles plus a vector overlay, and MapLibre shows them in image space. `hitec-pipeline tiles batch <ids> --rerender` already re-renders only the chosen tiles. It then rebuilds only their lower-zoom ancestors and replaces only those tiles in the archives.
+
+### 12.2 Map accuracy findings [V]
+| Problem | Cause | Tiles affected |
+|---|---|---|
+| RGIA shows bare ground and grass; there is no runway, taxiway or apron. Begumpet and Hakimpet are likely the same. | `aeroway` is missing from the Overpass query | ≈ 40 [E] |
+| Ground-level railways are invisible: 532 km of main line and yards appear as empty strips | The renderer draws only elevated rail | 264 |
+| The Old City Green Line extension (12 km, OSM `railway=construction`) is drawn as a finished metro | Rail status is ignored | 14 |
+| Flyovers look missing. 53 named flyovers and ≈ 190 km of bridge ways are in the data, drawn as 7 m decks. But their top is the same asphalt as ground roads, so at normal zoom they read as roads. | Deck styling | 842 if restyled |
+| Footbridges (9 km) are drawn as 7 m road decks | No class distinction | within the 842 |
+
+Metro Lines 1–3 are present and elevated. Phase II has not been approved (news, Nov 2026), so no planned line is drawn, which is correct.
+
+### 12.3 Fix method: no regeneration
+- **Data fixes** (metro status, offices, PGs) go in optional vector layers, off by default. Turning them off restores today's map exactly.
+- **Artwork fixes** re-render only the affected tiles with the existing batch, using the same projection, palette and light. Building and road geometry are not refetched.
+  - Aeroway comes in as a small extra layer per tile.
+  - Before re-rendering: back up `art.pmtiles` and hash every tile.
+  - After: every untouched tile must be hash-identical, and changed tiles are reviewed side by side.
+- **Order, smallest first:**
+  1. Old City construction metro (14 tiles)
+  2. Airports (≈ 40)
+  3. Ground rail (264)
+  4. Flyover deck style (842), only after you approve a one-tile pilot
+
+### 12.4 PGs inside residential discovery
+- **Google Maps is not used.**
+  - Project rule: no Google Maps content as a data source.
+  - Google's Places policy forbids storing Places content (except place IDs) and forbids showing it on a non-Google map.
+  - An optional "Open in Google Maps" link (Maps URLs: no API, nothing stored) is allowed.
+- **Open data [V]**, in the residential strip:
+  - Overture has 595 PG-, hostel- or lodging-like places. The median confidence is 0.58, and there are many false positives: apartment names and institutional hostels.
+  - Of these, 12 are branded Stanza Living, 3 Colive and 1 Settl.
+  - OSM has almost no PGs tagged.
+- **What open data does not have:** rent, deposit, sharing, food, AC and gender. These come only from the operator's own page (cited and dated) or from your own visit. Otherwise they show as "Not published". Listing portals are not scraped.
+- **R1, data:** `pipeline/residential/pgs.json`, mirroring `societies.json`:
+  - operator;
+  - men / women / co-living;
+  - location, plus the OSM building where it can be resolved by name (otherwise a point, never the nearest building);
+  - rent per single / double / triple sharing, with source and date;
+  - deposit;
+  - food, Wi-Fi, AC, laundry, housekeeping, each yes / no / unknown;
+  - public business contact only;
+  - status: Confirmed / Probable / Unverified / Closed;
+  - date last checked.
+- **R2, pipeline:** the same drive-time grid and nearby counts as for societies.
+- **R1–R2 as built [V, 2026-11-20]** (`pgs.py`, `pipeline/residential/pgs.json`):
+  - Operator pages are read only where robots.txt and the terms allow it: Zolo, HelloWorld, Settl. and Aadhya yes. Stanza Living (terms forbid robots and reuse) and Colive (blocks ClaudeBot; terms forbid machine-readable databases) are never read; their PGs carry the link only.
+  - Of 24 readable pages, 11 gave address, rents and services; 13 no longer list the property (kept as unverified, link dropped). Zolo prints prices without a period, so none is assumed.
+  - Overture points for one PG can disagree by up to 12.5 km; 10 PGs are flagged "location uncertain". Hostels on OSM university, college or school grounds are left out (4).
+  - Output: `residential_pgs.json`, `residential_pg_commute.json`, `residential_pg_places.json`, about 1 MB gzipped, loaded only when PGs are shown.
+- **R3 as built [V, 2026-11-21]:**
+  - Code: `web/src/lib/pgs.ts` (data, loading, rules), `ui/PgCard.tsx`, and changes to the panel, comparison strip, map (a symbol layer of runtime-drawn diamonds) and URL (`ht`, `hr`, `hg`, `hi`, `hv`).
+  - Pipeline: PGs outside the society neighbourhoods get the nearest OSM suburb or town within 3 km. Without these, 26 PGs had no neighbourhood; now 1 has none. Uncertain PGs keep their other listing points.
+  - One refinement to the design: a confirmed page listing a "Classic sharing" room without a count doesn't rule out a sharing choice; it stays unknown.
+  - Example search (PGs, ₹12,000, double, women's or mixed, 30 min to Mindspace): 0 match, 8 likely, 67 unknown, 45 hidden.
+  - Checks:
+    - mode-off views are pixel-identical to M9 apart from the live visit counter;
+    - the Societies view loads no PG data;
+    - the day look renders;
+    - no console errors;
+    - 85 web and 68 pipeline tests pass, and the production build passes.
+  - The Google Maps link is not built and awaits approval.
+- **R3, interface (design approved 2026-11-20).** Mockups were injected into the running app with real data; no source changed.
+  - **Show:** Societies (the default, today's view unchanged) · PGs & co-living · Both. Kept in the URL as `ht=pg|both`, so old links open as before. PG files load only when PGs are shown.
+  - **Panel:**
+    - Monthly rent applies to both types; for PGs it has lower steps, from ₹6,000.
+    - BHK and Furnishing apply only to societies. They are hidden for PGs, and in Both they don't affect PGs.
+    - New PG fields: Sharing (single / double / triple), Who can stay (men's / women's / mixed), Included (food, Wi-Fi, AC, laundry, housekeeping), and Listing (confirmed on the operator's page).
+    - Drive, neighbourhoods, places within 1 km and metro work as now.
+  - **PG verdicts** (the same four):
+    - Rent: the cheapest published starting price for the chosen sharing. At or under budget it is a match if the price is per month, likely if the page gives no period. Over budget it is "no" if per month, unknown if no period. Unpublished or not read is unknown.
+    - Sharing: offered is a match. If a confirmed page lists only other room types, "no". Otherwise unknown.
+    - Who can stay: from the operator's page or link, match or "no". From the listing name, likely or "no". Unstated is unknown.
+    - Included: yes is a match, no is "no", unstated is unknown.
+  - **Map:** PGs are small diamonds; societies keep their round dots and outlines. Filled = match, outlined = likely, dashed amber = unknown; ruled-out PGs are hidden. The open PG gets a ring. For a PG with an uncertain location, its other listing points are dotted.
+  - **PG card:**
+    - status and fit chips;
+    - cautions: page gone, location uncertain, open data only;
+    - the reasons;
+    - Compare;
+    - rent per room type as published, with the date and any missing period;
+    - deposit;
+    - who can stay, with its source;
+    - included, not included and not published;
+    - the address as printed;
+    - drive, metro, nearby places and sources.
+  - **Comparison:** up to 3 homes of either type. New rows: Type, Rent, Rooms, Who can stay, Food. A row that doesn't apply shows "—".
+  - **Phone:** the same sheet, with Show at the top.
+  - **Pipeline additions:**
+    - neighbourhoods for PGs outside the society areas (KPHB, Gopanpally), from OSM place points by the same 3 km rule;
+    - the other listing points of uncertain PGs.
+  - **Optional, needs approval:** an "Open in Google Maps" link on the card, using Maps URLs (`/maps/search/?api=1&query=`). It opens a new tab and nothing is fetched or stored.
+  - **Unchanged:** the artwork, mode off, and the Societies view. These are checked against M9 baselines.
+- **R4, checks:** same as M9. Mode off = baseline, and there are no console errors.
+
+### 12.5 Corporate offices
+- **B1, schema v2:** one row per office, in `pipeline/corporate/offices.csv`, checked by `hitec-pipeline corporate`. Each row has:
+  - company, sector (tech / IT services / banking & finance / pharma & life sciences / consulting / other);
+  - campus, address, latitude and longitude, footprint;
+  - office type (HQ / development centre / GCC / delivery / R&D / sales / plant);
+  - status (Confirmed / Probable / Unverified / Closed) with an evidence date;
+  - sources, and confidence.
+
+  The existing 10 seed records are migrated.
+- **B2, candidates:** Overture places plus OSM named buildings and office tags produce a review list only, never the map. In the residential strip alone there are 3,608 corporate-category places. Name matches for large employers are noisy: "Apple" matches 32, including resellers.
+- **B3, verification:**
+  - **Confirmed:** an official company page or a government record (for example SEZ notifications) names the building.
+  - **Probable:** an official source names only the campus, or a reputable press source names the building.
+  - **Unverified:** open data only.
+  - **Closed:** a dated source reports the exit.
+- **B4, footprint:** a named OSM building with a name check, or an OSM id chosen during review. Otherwise the office is marked Unresolved, never attached to the nearest building.
+- **B5, interface:**
+  - The existing search, card and building highlight handle several offices per company.
+  - An optional "Offices" layer with a sector filter, off by default.
+  - Offices can be chosen as the workplace in residential mode.
+  - Design for approval first.
+- **Pilot:** about 40 companies across the areas listed, then extend.
+
+### 12.6 Skills
+| Skill | Use |
+|---|---|
+| playwright-cli (installed) | All browser checks, including this audit's airport, rail and flyover views. The Playwright agent-CLI page offers the same skill, so there is nothing new to add. |
+| maplibre-cartography, -pmtiles-patterns, -tile-sources (installed, from maplibre/maplibre-agent-skills, MIT) | Overlay ordering and legibility; patching the art archive; GeoJSON is fine for a few thousand points. Of the repo's other 10 skills, only sprites-icons might help later (office/PG icons). Not installed. |
+| isometric-ops (installed) | Pixel styling for runway, rail and deck re-renders |
+| google-maps-platform (installed) | Only to confirm the terms. No Google data is used. |
+| mimic, find-skills | Not needed |
+| TerraLabAI/geoai-skills | Not installed: MIT, but 4 commits; built around QGIS; its gis-data skill repeats our Overpass and Overture fetchers. |
+
+### 12.7 Dependencies
+- No new npm or Python packages.
+- Downloads (sizes reported before fetching):
+  - Overture places for the whole city box, needed for offices and PGs outside the residential strip;
+  - one small Overpass query for `aeroway`.
+
+### 12.8 Recommended sequence (stop for review after each)
+1. PGs R1–R2, then R3–R4. This continues residential discovery and does not touch the artwork.
+2. Offices B1–B4 pilot (data only), then the B5 design.
+3. Map accuracy, in the 12.3 order: the metro status layer and Old City tiles, then airports, then rail, then the flyover pilot.
+
 ## Sources
 [Overture Python CLI](https://docs.overturemaps.org/getting-data/overturemaps-py/) · [overturemaps-py](https://github.com/OvertureMaps/overturemaps-py) · [Open Buildings 2.5D Temporal (Earth Engine catalog, incl. GCS download note and S2-cell tiling)](https://developers.google.com/earth-engine/datasets/catalog/GOOGLE_Research_open-buildings-temporal_v1?hl=en) · [MapLibre custom CRS discussion #163](https://github.com/maplibre/maplibre/discussions/163) · [MapLibre ImageSource](https://maplibre.org/maplibre-gl-js/docs/API/classes/ImageSource) · OSM data via Overpass API (counts above).
+
+Section 12: [Places API policies](https://developers.google.com/maps/documentation/places/web-service/policies) · [Overture places taxonomy](https://docs.overturemaps.org/guides/places/taxonomy/) · [Metro Phase II stalled, Telangana Today, 11 Nov 2026](https://telanganatoday.com/metro-rail-expansion-hyderabad-loses-steam-other-city-metros-gain-pace) · [SEZ notifications, sezindia.gov.in](https://sezindia.gov.in/sites/default/files/notifed/Notified_SEZs_358.pdf) · [maplibre-agent-skills](https://github.com/maplibre/maplibre-agent-skills) · [geoai-skills](https://github.com/TerraLabAI/geoai-skills) · [Playwright agent CLI skills](https://playwright.dev/agent-cli/skills)

@@ -21,6 +21,11 @@ def main() -> None:
 
         corporate_cli(sys.argv[2:])
         return
+    if len(sys.argv) > 1 and sys.argv[1] == "residential":  # societies for the home finder
+        from .residential import cli as residential_cli
+
+        residential_cli(sys.argv[2:])
+        return
     if len(sys.argv) > 1 and sys.argv[1] == "places":  # the citywide search index for the web app
         from .places import cli as places_cli
 
