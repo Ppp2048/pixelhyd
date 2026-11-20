@@ -41,7 +41,7 @@ No satellite imagery, no hand-placed sprites, no third-party map art.
 | 🔍 **Zoom** | 9 (the whole city) to 20 (street level) |
 | 🔎 **Search** | 15,970 places, streets and buildings, plus company sites |
 | 🌆 **Looks** | Dusk (default) and day |
-| 🏠 **Home search** | 20 gated societies and 120 PGs around HITEC City and Gachibowli, on [`feature/residential-discovery`](#branches) |
+| 🏠 **Home search** | 20 gated societies and 120 PGs around HITEC City and Gachibowli |
 
 ---
 
@@ -128,7 +128,7 @@ Names come from OpenStreetMap and Overture places. Built by `hitec-pipeline plac
 ## Home search (in progress)
 
 > [!NOTE]
-> Home search is on the **`feature/residential-discovery`** branch and is not on `main` yet. Turning the mode off gives back the plain map, pixel for pixel.
+> Home search was merged into `main` in [PR #1](https://github.com/Ppp2048/pixelhyd/pull/1) and keeps developing on **`feature/residential-discovery`**. Turning it off gives back the plain map, pixel for pixel.
 
 Pick where you work. Pixelhyd then checks the homes around it against your preferences and lights them up on the map, with a reason for every verdict.
 
@@ -205,20 +205,24 @@ gitGraph
   commit id: "Ring-by-ring growth"
   commit id: "Resumable strips"
   commit id: "Dusk look"
-  commit id: "Working map checkpoint" type: HIGHLIGHT
+  commit id: "Map-only checkpoint 87e5715" type: HIGHLIGHT
   branch feature/residential-discovery
   checkout feature/residential-discovery
   commit id: "Home search: societies and PGs"
+  checkout main
+  merge feature/residential-discovery id: "PR #1"
 ```
 
 | Branch | What it is |
 |---|---|
-| **`main`** | The stable working map: the whole city, dusk and day looks, search, company sites, building cards and the visit counter. This is the version to return to at any time. |
-| **`feature/residential-discovery`** | Everything on `main`, plus home search for societies and PGs. Work in progress. |
+| **`main`** | The working app: the whole city, dusk and day looks, search, company sites, building cards, the visit counter, and home search since PR #1. |
+| **`feature/residential-discovery`** | Where home search, company offices and map fixes are developed before they reach `main`. |
+| commit **`87e5715`** | The map-only checkpoint from before home search. You can return to it at any time. |
 
 ```bash
-git switch main                              # the stable map
-git switch feature/residential-discovery     # the map plus home search
+git switch main                              # the current app
+git switch feature/residential-discovery     # work in progress
+git switch --detach 87e5715                  # the map-only checkpoint
 ```
 
 ---
@@ -319,7 +323,7 @@ uv run hitec-pipeline render --area prototype --k 4 --chunk 512
 # search, company and home-search data
 uv run hitec-pipeline places
 uv run hitec-pipeline corporate
-uv run hitec-pipeline residential                  # feature/residential-discovery only
+uv run hitec-pipeline residential                  # societies, PGs, drive times, nearby places
 
 # 2. Web app
 cd ../web
@@ -355,8 +359,8 @@ uv run hitec-pipeline tiles run                     # just the next tile
 <br>
 
 ```bash
-cd pipeline && uv run pytest          # projection, seams, tiles, places, companies (+ homes on the feature branch)
-cd web && npx vitest run              # projection, search, URL state (+ verdict rules on the feature branch)
+cd pipeline && uv run pytest          # projection, seams, tiles, places, companies, homes
+cd web && npx vitest run              # projection, search, verdict rules, URL state
 cd web && npm run lint                # oxlint
 cd web && npm run build               # type check + production build
 ```
@@ -409,7 +413,7 @@ Principles the code and the interface follow:
 | Path | What |
 |---|---|
 | [`pipeline/`](pipeline) | Python (uv) pipeline, run as `hitec-pipeline` |
-| [`pipeline/src/hitec_pipeline/`](pipeline/src/hitec_pipeline) | Modules: `fetch`, `normalise`, `iso`, `render`, `tiles` and `batch` for the map; `places` and `corporate` for search; `residential`, `pgs`, `commute` and `amenities` for home search (feature branch) |
+| [`pipeline/src/hitec_pipeline/`](pipeline/src/hitec_pipeline) | Modules: `fetch`, `normalise`, `iso`, `render`, `tiles` and `batch` for the map; `places` and `corporate` for search; `residential`, `pgs`, `commute` and `amenities` for home search |
 | [`pipeline/corporate/`](pipeline/corporate) | Company seed and building matches |
 | [`web/src/map/`](web/src/map) | MapLibre view, image-space projection, the dusk look (`duskCore`, workers) |
 | [`web/src/ui/`](web/src/ui) | Search, cards, settings, home search panel, comparison |
@@ -429,6 +433,7 @@ Principles the code and the interface follow:
 - [x] Anonymous visit counter (Node + SQLite or Cloudflare D1)
 - [x] Home search for societies: data, drive times, verdicts, map highlights, cards, comparison, phone layout
 - [x] Home search for PGs and co-living: 120 PGs, filters, cards and mixed comparison
+- [x] Home search merged into `main` (PR #1)
 - [ ] Company offices: a data-only pilot, then the interface design
 - [ ] Map accuracy fixes, re-rendering only the affected tiles:
   - [ ] the Old City construction metro
