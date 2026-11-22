@@ -170,6 +170,8 @@ a:hover { text-decoration: underline; }
 .field { display: flex; flex-direction: column; gap: 4px; padding: 9px 0; border-top: 1px solid var(--edge); color: var(--muted); font-size: 12px; }
 .field select { padding: 6px 8px; border: 1px solid var(--edge); border-radius: 8px; background: var(--glass-solid); color: var(--ink); }
 .fine { margin: 6px 0 0; padding-top: 10px; border-top: 1px solid var(--edge); color: var(--muted); font-size: 12px; }
+.fine + .fine { padding-top: 0; border-top: 0; }
+.fine a { color: inherit; text-decoration: underline; }
 
 .card {
   position: absolute; z-index: 4; top: calc(var(--gap) + 52px); left: var(--gap);

@@ -69,6 +69,22 @@ export function SettingsPanel(p: Props) {
         Buildings, roads, water and parks come from OpenStreetMap, Overture Maps and Google Open Buildings. Heights marked
         <em> estimated</em> are modelled, not measured. Company locations are shown only where a named footprint backs them.
       </p>
+      <p className="fine">
+        Map data ©{' '}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+          OpenStreetMap contributors
+        </a>{' '}
+        and Overture Maps Foundation. The building, road and place data this site serves (overlay tiles and the files
+        under /data) is derived from OpenStreetMap and available under the{' '}
+        <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noreferrer">
+          Open Database License
+        </a>
+        .
+      </p>
+      <p className="fine">
+        The visitor count uses no cookies and stores no IP addresses: a visitor is recognised for 30 minutes by a hash
+        salted afresh each day, and only the running total is kept.
+      </p>
     </section>
   )
 }

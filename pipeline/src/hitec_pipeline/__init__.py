@@ -31,6 +31,11 @@ def main() -> None:
 
         places_cli(sys.argv[2:])
         return
+    if len(sys.argv) > 1 and sys.argv[1] == "deploy":  # cut the tile archives into files a static host can serve
+        from .deploy import cli as deploy_cli
+
+        deploy_cli(sys.argv[2:])
+        return
 
     from .area import AREAS
 

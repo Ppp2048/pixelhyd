@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import type { GeoJSONSource, MapLayerMouseEvent, MapMouseEvent, RasterTileSource, VectorTileSource } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
-import { Protocol } from 'pmtiles'
+import { PMTiles, Protocol } from 'pmtiles'
 // Bundle MapLibre's module worker (and the chunk it imports) so it also works in production builds.
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { artToLngLat, imageToReal, lngLatToArt, nativeZoom, realToImage, silhouetteGround } from '../lib/projection'
@@ -11,17 +11,34 @@ import { siteTitle, type Corporate } from '../lib/corporate'
 import type { Place } from '../lib/places'
 import type { LitPlace } from '../lib/homes'
 import { DUSK, duskProtocol, setArtGeometry } from './duskLook'
+import { ChunkedSource } from './chunkedSource'
 import { DATASETS, type BuildingProps, type CorporateSite, type Dataset, type DatasetMeta } from '../types'
 
 // The PMTiles protocol is global to MapLibre: register it once, before any map exists.
-let protocolRegistered = false
-function ensureProtocol() {
-  if (protocolRegistered) return
+let protocol: Protocol | null = null
+function ensureProtocol(): Protocol {
+  if (protocol) return protocol
   maplibregl.setWorkerUrl(workerUrl)
-  const pm = new Protocol()
-  maplibregl.addProtocol('pmtiles', pm.tile)
-  maplibregl.addProtocol(DUSK, duskProtocol(pm)) // same archive, graded and textured in the browser
-  protocolRegistered = true
+  protocol = new Protocol()
+  maplibregl.addProtocol('pmtiles', protocol.tile)
+  maplibregl.addProtocol(DUSK, duskProtocol(protocol)) // same archive, graded and textured in the browser
+  return protocol
+}
+
+/**
+ * Where the archives were cut into chunk files (meta.chunks, for hosts without range requests),
+ * read them through ChunkedSource. The protocol finds a reader by the archive's URL, so the map
+ * style keeps naming the archive itself.
+ */
+function registerChunkedArchives(pm: Protocol, dataset: Dataset, meta: DatasetMeta) {
+  if (!meta.chunks) return
+  for (const [name, info] of Object.entries(meta.chunks.archives)) {
+    const url = fileUrl(dataset, name)
+    if (pm.get(url)) continue
+    const folder = `${meta.chunks.dir}/${name.replace(/\.pmtiles$/, '')}`
+    const layout = { size: info.size, chunk: info.chunk, url: (i: number) => fileUrl(dataset, `${folder}/${i}.bin`) }
+    pm.add(new PMTiles(new ChunkedSource(url, layout)))
+  }
 }
 
 export type Look = 'day' | 'dusk'
@@ -32,6 +49,12 @@ const FADE_MS: Record<Look, number> = { day: 0, dusk: 160 }
 const fileUrl = (dataset: Dataset, name: string) => new URL(`${dataset.base}/${name}`, window.location.href).href
 /** The art source URL: the published archive, through the protocol of the chosen look. */
 const artSourceUrl = (dataset: Dataset, art: string, look: Look) => `${look === 'dusk' ? DUSK : 'pmtiles'}://${fileUrl(dataset, art)}`
+
+/** The map's credit line (plain text in meta.json), with OpenStreetMap linked to its copyright page. */
+const attributionHtml = (text: string) =>
+  text
+    .replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`)
+    .replace('OpenStreetMap contributors', '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap contributors</a>')
 
 /** Map actions for the floating controls and search. */
 export interface MapApi {
@@ -375,7 +398,7 @@ export function MapView(props: Props) {
 
   useEffect(() => {
     if (!container.current) return
-    ensureProtocol()
+    registerChunkedArchives(ensureProtocol(), dataset, meta)
     const p = meta.projection
     const url = readUrl()
     const native = nativeZoom(p)
@@ -406,7 +429,7 @@ export function MapView(props: Props) {
       dragRotate: false,
       pitchWithRotate: false,
       touchPitch: false,
-      attributionControl: { compact: window.innerWidth < 720, customAttribution: meta.attribution },
+      attributionControl: { compact: window.innerWidth < 720, customAttribution: attributionHtml(meta.attribution) },
       style: {
         version: 8,
         sources: {
