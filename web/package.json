@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:deploy": "tsc -b && vite build --mode deploy",
     "lint": "oxlint",
     "preview": "vite preview",
     "start": "node server/main.ts"

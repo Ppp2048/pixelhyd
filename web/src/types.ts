@@ -15,6 +15,11 @@ export interface DatasetMeta {
   art?: string
   /** Tiled map: art-pixel box (x0, y0, x1, y1) of the whole city grid; may be negative. */
   canvas?: [number, number, number, number]
+  /**
+   * Deployed builds only: the archives were cut into chunk files for a host without range requests
+   * (pipeline `hitec-pipeline deploy`). Chunk i of archive `a.pmtiles` is `<dir>/a/<i>.bin`.
+   */
+  chunks?: { dir: string; archives: Record<string, { size: number; chunk: number; count: number; sha256: string }> }
 }
 
 export type HeightConfidence = 'verified' | 'derived' | 'modelled' | 'estimated'
@@ -40,7 +45,7 @@ export interface Dataset {
 }
 
 /**
- * Where the map tiles live: this site's /tiles in development; in production usually a storage
+ * Where the map tiles live: this site's /tiles by default (in a deploy build, cut into chunks); or a storage
  * bucket or CDN, set at build time with VITE_TILES_URL (see docs/deploy.md).
  */
 const TILES = (import.meta.env.VITE_TILES_URL || '/tiles').replace(/\/+$/, '')

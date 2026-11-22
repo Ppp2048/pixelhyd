@@ -1,87 +1,112 @@
 # Deploying Pixelhyd
 
-Three parts, deployed separately:
+Everything is served by Cloudflare Pages on the free plan, with no payment method:
 
-| Part | What | Size | Where (free) |
-|---|---|---|---|
-| Site | `web/dist` from `npm run build` (app, `data/corporate.json`, `data/places.json`) | ~4 MB | Cloudflare Pages |
-| Visit counter | `/api/visits`: `web/functions/api/visits.ts` + `web/server/` | — | Pages Function + D1 |
-| Tiles | `web/public/tiles/hitec-city-k4/`: `meta.json`, `art.<version>.pmtiles`, `overlay.<version>.pmtiles` | ~3 GB | R2 bucket |
+| Part | What | Size |
+|---|---|---|
+| Site | `web/dist` from `npm run build:deploy`: the app and `data/*.json` | ~4 MB |
+| Tiles | `dist/tiles/hitec-city-k4/`: `meta.json` and the two map archives cut into 256 KiB chunk files | ~3.06 GB, ~11,700 files |
+| Visit counter | `/api/visits`: `web/functions/api/visits.ts` + `web/server/`, stored in D1 | — |
 
-No secrets live in the repository. `VITE_TILES_URL` is a public URL baked into the build, and the
-D1 `database_id` in `web/wrangler.toml` is an identifier, not a credential. The one credential, an
-R2 upload token, stays in your rclone config.
+## Why the tiles are cut into chunks
 
-Cloudflare's free allowances cover this comfortably: R2 10 GB stored, 10 M reads and 1 M writes a
-month with no download fees; Workers/Pages Functions 100 000 requests a day (the counter sends one
-per visitor per minute); D1 5 GB and 100 000 written rows a day. Cloudflare may ask for a payment
-method before turning R2 on; nothing is charged within the free allowance.
+The map archives are PMTiles files, which a reader normally fetches in byte ranges. Pages answers a
+range request with the whole file, and limits a deployment to 20,000 files of at most 25 MiB, so the
+2.4 GB and 0.6 GB archives cannot be served as they are.
 
-Commands use Git Bash from `web/`. `wrangler` is run with `npx` at a pinned version, not installed
-into the project. `WRANGLER_SEND_METRICS=false` turns off its usage telemetry.
+`hitec-pipeline deploy` cuts each archive into fixed-size chunk files (`chunks/<archive>/<i>.bin`)
+and writes a `meta.json` with a `chunks` field listing each archive's size, chunk size, chunk count
+and SHA-256. The app (`web/src/map/chunkedSource.ts`) then reads any byte range by fetching the whole
+chunks that cover it, keeps recent chunks in memory, and slices out the bytes. The chunks of an
+archive, joined in order, are the archive byte for byte. Without a `chunks` field (development, or a
+host that answers range requests) the app reads the archives directly.
 
-## 0. Check locally first (no account needed)
+Chunk folders are named after the archive's version, so they never change and are cached for a year
+(`public/_headers`); `meta.json` is cached for five minutes.
+
+## Free allowances
+
+- Pages: unlimited static requests and bandwidth; 20,000 files per deployment, 25 MiB per file.
+  The build stops if it would exceed either limit.
+- Pages Functions count as Workers requests: 100,000 a day. Only `/api/visits` runs a function
+  (wrangler generates the routes); the counter sends one request per visitor per minute.
+- D1: 5 GB stored, 100,000 rows written a day.
+
+No secrets live in the repository. The D1 `database_id` in `web/wrangler.toml` is an identifier, not
+a credential, and wrangler keeps its sign-in outside the project.
+
+Commands use Git Bash. `wrangler` is run with `npx` at a pinned version, not installed into the
+project. `WRANGLER_SEND_METRICS=false` turns off its usage telemetry.
+
+## 0. Build and check locally (no account needed)
 
 ```bash
-npm run build
-npx wrangler@4.156.0 d1 migrations apply pixelhyd-visits --local
-npx wrangler@4.156.0 pages dev        # http://localhost:8788, counter on local D1
+cd pipeline && uv run hitec-pipeline deploy   # data/deploy/tiles: ~11,700 chunk files, checked by SHA-256
+cd ../web && npm run build:deploy             # dist/ with the chunks hard-linked in; checks the host limits
+npm run preview                               # http://localhost:4173, counter on local SQLite
 ```
+
+`npx wrangler@4.156.0 pages dev` also serves `dist/` with the real Pages Function and a local D1
+(after `d1 migrations apply pixelhyd-visits --local`), but it reads all 3 GB before answering, so
+the first request is slow.
+
+`hitec-pipeline deploy` keeps chunk folders that still match their archive, so running it again
+after publishing new tiles only cuts the new archive.
 
 ## 1. Account steps (yours)
 
-1. Create a Cloudflare account and turn on R2 in the dashboard.
+1. Create a free Cloudflare account.
 2. Sign wrangler in: `npx wrangler@4.156.0 login` (opens the browser).
-3. Install rclone for the large upload: `winget install Rclone.Rclone`.
-4. In the dashboard, R2 → Manage API tokens → create a token with Object Read & Write on the
-   `pixelhyd-tiles` bucket only. Run `rclone config` and add a remote named `r2`: type `s3`,
-   provider `Cloudflare`, the token's access key and secret, endpoint
-   `https://<account id>.r2.cloudflarestorage.com`. Never paste the token into the repo or chat.
 
-## 2. Tiles → R2
+## 2. Counter database → D1
 
 ```bash
-npx wrangler@4.156.0 r2 bucket create pixelhyd-tiles
-npx wrangler@4.156.0 r2 bucket cors set pixelhyd-tiles --file deploy/r2-cors.json
-npx wrangler@4.156.0 r2 bucket dev-url enable pixelhyd-tiles   # prints https://pub-….r2.dev
-
-# Archives first (immutable: each build has a new name), then meta.json (short cache).
-rclone copy public/tiles/hitec-city-k4 r2:pixelhyd-tiles/hitec-city-k4 --exclude meta.json \
-  --s3-chunk-size 100M --header-upload "Cache-Control: public, max-age=31536000, immutable" -P
-rclone copyto public/tiles/hitec-city-k4/meta.json r2:pixelhyd-tiles/hitec-city-k4/meta.json \
-  --header-upload "Cache-Control: public, max-age=300"
-```
-
-The `r2.dev` address is rate-limited and meant for light use. If you own a domain on Cloudflare,
-connect it to the bucket instead (R2 → bucket → Settings → Custom domains) and use that URL below.
-
-## 3. Counter database → D1
-
-```bash
+cd web
 npx wrangler@4.156.0 d1 create pixelhyd-visits      # copy database_id into wrangler.toml
 npx wrangler@4.156.0 d1 migrations apply pixelhyd-visits --remote
 ```
 
-## 4. Site → Pages
+## 3. Site and tiles → Pages
 
 ```bash
-VITE_TILES_URL=https://pub-….r2.dev npm run build
-npx wrangler@4.156.0 pages deploy                    # first run creates the "pixelhyd" project
+npx wrangler@4.156.0 pages project create pixelhyd --production-branch main   # once
+npm run build:deploy
+npx wrangler@4.156.0 pages deploy --branch main
 ```
 
-The site is then at `https://pixelhyd.pages.dev`. To publish new tiles later: upload the new
-archives, then `meta.json`. No site rebuild is needed.
+`--branch main` makes it the production deployment; without it, wrangler names the deployment
+after the current git branch and it becomes a preview at its own address.
+The first deploy uploads about 3 GB. Later deploys upload only files whose contents are new
+(wrangler compares hashes), so app changes take seconds and new tiles upload only the new chunks.
+The site is then at `https://pixelhyd.pages.dev`.
+
+To publish new tiles: `hitec-pipeline tiles publish`, then `hitec-pipeline deploy`,
+`npm run build:deploy` and `pages deploy`.
 
 ## Other hosts
 
-`npm start` runs `web/server/main.ts`: the site and the counter in one Node 24 process (SQLite at
-`VISITS_DB` on a persistent disk; `TRUST_PROXY=1` behind a proxy). Any bucket works for tiles if it
-answers `Range` requests with `206`, sends CORS for `GET, HEAD` with header `Range` and exposes
-`ETag, Content-Range`, and serves `.pmtiles` without `Content-Encoding`.
+- `npm start` runs `web/server/main.ts`: the site and the counter in one Node 24 process (SQLite at
+  `VISITS_DB` on a persistent disk; `TRUST_PROXY=1` behind a proxy). Build with
+  `npm run build:deploy` to include the chunked tiles.
+- A bucket that answers `Range` requests with `206` (R2, S3) can serve the archives whole: build with
+  `VITE_TILES_URL=https://… npm run build` and upload `web/public/tiles/hitec-city-k4/` (archives
+  first, then `meta.json`). It must send CORS for `GET, HEAD` with header `Range`, expose
+  `ETag, Content-Range` (`web/deploy/r2-cors.json`), and serve `.pmtiles` without
+  `Content-Encoding`. R2 may ask for a payment method before it is turned on.
+
+## Data licences
+
+The map art is a produced work from OpenStreetMap and Overture Maps data; the map's credit line
+names both. The overlay tiles and the files under `/data` are derived databases of OpenStreetMap
+data, so they are offered under the Open Database License; the Settings panel says so and links the
+licence.
 
 ## Checks after deploying
 
-- The whole city draws, and zooming in loads building detail (tiles reachable; CORS and ranges work).
+- The whole city draws, and zooming in loads building detail. In the browser's network panel, tiles
+  arrive as `chunks/…/<i>.bin` with status 200 and no `Range` header.
 - Search finds "Charminar" and "Microsoft" (data files served).
-- `https://pixelhyd.pages.dev/api/visits` returns `{"active":…,"total":…}`; opening the site in a normal browser raises `active`.
-- The browser console is free of CORS or 4xx errors.
+- `https://pixelhyd.pages.dev/api/visits` returns `{"active":…,"total":…}`; opening the site in a
+  normal browser raises `active`.
+- The browser console is free of errors.
+- Settings shows the data licence and visit-count privacy notes.
