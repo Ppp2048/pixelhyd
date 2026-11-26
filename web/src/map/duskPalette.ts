@@ -93,6 +93,11 @@ const SURFACES: [string, string, Surface][] = [
   ['#ece4cf', '#c9bfa3', Surface.Mark],
   ['#c7b593', '#8a7a5f', Surface.Path],
   ['#b39b75', '#7f6847', Surface.Path],
+  // Airside paving (style.RUNWAY, TAXIWAY, APRON, RUNWAY_MARK): plain surfaces, so no street life on them.
+  ['#575b61', '#363a42', Surface.Other],
+  ['#676b70', '#41454d', Surface.Other],
+  ['#aaa79f', '#5e5d58', Surface.Other],
+  ['#e6e3da', '#bdb8aa', Surface.Other],
 ]
 /** Open ground: the area default and plain residential land (style.GROUND, landuse:residential). */
 const BARE = ['#d8c9a8', '#d6c8a6']

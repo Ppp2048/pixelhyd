@@ -26,7 +26,10 @@ describe('dusk look', () => {
     expect([...px.slice(4)]).toEqual([1, 2, 3, 0])
   })
 
-  test('street life is deterministic for a place and drawn only at native zoom', () => {
+  // This test builds the street-life tables and paints three tiles (≈1.2 s alone). Under heavy CPU
+  // load (e.g. the pipeline's tests running at the same time) it exceeded vitest's 5 s default and
+  // was reported as a failure at this line, so it gets a budget that fits a busy laptop.
+  test('street life is deterministic for a place and drawn only at native zoom', { timeout: 30_000 }, () => {
     const a = roadTile()
     const b = roadTile()
     const plain = roadTile()
@@ -36,6 +39,30 @@ describe('dusk look', () => {
     expect(a).toEqual(b)
     const changed = a.reduce((n, v, i) => n + (v !== plain[i] ? 1 : 0), 0)
     expect(changed).toBeGreaterThan(200) // vehicles, people, lamps and their shadows
+  })
+
+  test('airside paving gets its dusk colour and no street life', { timeout: 30_000 }, () => {
+    // Left half runway with a centreline stripe, right half apron, a taxiway band at the bottom.
+    const [runway, stripe, apron, taxiway] = ['#575b61', '#e6e3da', '#aaa79f', '#676b70'].map(hex)
+    const tile = () => {
+      const px = new Uint8ClampedArray(W * W * 4)
+      for (let y = 0; y < W; y++)
+        for (let x = 0; x < W; x++) {
+          const c = y >= 200 ? taxiway : x >= 128 ? apron : y >= 60 && y < 63 ? stripe : runway
+          px.set([...c, 255], (y * W + x) * 4)
+        }
+      return px
+    }
+    const lively = tile()
+    const plain = tile()
+    applyDusk(lively, W, W, 512 * W, 512 * W, 1, true, SCALE)
+    applyDusk(plain, W, W, 512 * W, 512 * W, 1, true)
+    expect(lively).toEqual(plain) // no cars, people or lamps on a runway or apron
+    const at = (x: number, y: number) => [...lively.slice((y * W + x) * 4, (y * W + x) * 4 + 3)]
+    expect(at(10, 10)).toEqual(hex('#363a42'))
+    expect(at(10, 61)).toEqual(hex('#bdb8aa'))
+    expect(at(200, 10)).toEqual(hex('#5e5d58'))
+    expect(at(10, 230)).toEqual(hex('#41454d'))
   })
 
   test('some, not all, small open plots between buildings become parks', () => {

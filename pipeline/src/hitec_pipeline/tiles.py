@@ -63,9 +63,9 @@ from shapely.ops import unary_union
 from . import DATA_ROOT
 from .area import HITEC_CITY, PROTOTYPE, Square, to_utm, to_wgs
 from .build import WEB_PUBLIC, _clean, _encode, building_silhouette, peak_memory_mb
-from .fetch import fetch_all
+from .fetch import fetch_aeroway, fetch_all
 from .iso import TILE, IsoProjection
-from .normalise import normalise
+from .normalise import AEROWAY_FILE, normalise
 from .render import render_region
 from .scene import LAYERS, Building, Scene, build_scene_from_layers, read_layers
 
@@ -102,7 +102,7 @@ ATTRIBUTION = "© OpenStreetMap contributors · Overture Maps Foundation"
 
 DONE = ("rendered", "validated")
 TODO = ("pending", "fetched", "failed", "stale")
-KEYS = {"buildings": "id", "roads": "osm_id", "rail": "osm_id", "areas": "osm_id", "pois": "osm_id"}
+KEYS = {"buildings": "id", "roads": "osm_id", "rail": "osm_id", "areas": "osm_id", "pois": "osm_id", "aeroway": "osm_id"}
 
 
 # ---------------------------------------------------------------- grid
@@ -298,6 +298,27 @@ def fetch_block(block: tuple[int, int], force: bool = False) -> Path:
     return _raw(sq.name)
 
 
+def fetch_block_aeroway(block: tuple[int, int]) -> Path:
+    """Add the aeroway supplement to a block's existing download (nothing else is re-fetched)."""
+    sq = block_square(block)
+    if not has_raw(_raw(sq.name)):
+        raise SystemExit(f"block {block} has no download yet; fetch it with a normal batch first")
+    return fetch_aeroway(sq, _raw(sq.name))
+
+
+def aeroway_tiles(block: tuple[int, int]) -> list[str]:
+    """City tiles a block's runways, taxiways and aprons touch (by their full OSM geometry)."""
+    path = _raw(block_square(block).name) / AEROWAY_FILE
+    tids: set[str] = set()
+    for el in json.loads(path.read_text(encoding="utf-8"))["elements"]:
+        pts = [(p["lon"], p["lat"]) for p in el.get("geometry", []) if p]
+        pts += [(p["lon"], p["lat"]) for m in el.get("members", []) for p in m.get("geometry", []) if p]
+        if len(pts) >= 2:
+            line = LineString([to_utm(lon, lat) for lon, lat in pts])
+            tids.update(t for t in tiles_in(line.buffer(60)) if in_city(*rc(t)))
+    return sorted(tids, key=rc)
+
+
 def split_block(tid: str) -> Path:
     """Write the tile's raw inputs as the subset of its block's downloads within the tile's fetch box."""
     sq = tile_square(tid)
@@ -311,9 +332,13 @@ def split_block(tid: str) -> Path:
         b = el.get("bounds")
         return b is not None and not (b["maxlat"] < s or b["minlat"] > n or b["maxlon"] < w or b["minlon"] > e)
 
-    osm = json.loads((src / "osm.json").read_text(encoding="utf-8"))
-    osm["elements"] = [el for el in osm["elements"] if hit(el)]
-    (out / "osm.json").write_text(json.dumps(osm), encoding="utf-8")
+    for name in ("osm.json", AEROWAY_FILE):  # the aeroway supplement exists for some blocks only
+        if name == AEROWAY_FILE and not (src / name).exists():
+            (out / name).unlink(missing_ok=True)
+            continue
+        osm = json.loads((src / name).read_text(encoding="utf-8"))
+        osm["elements"] = [el for el in osm["elements"] if hit(el)]
+        (out / name).write_text(json.dumps(osm), encoding="utf-8")
     ov = gpd.read_parquet(src / "overture_buildings.parquet")
     bb = ov.geometry.bounds
     ov[(bb.maxx >= w) & (bb.minx <= e) & (bb.maxy >= s) & (bb.miny <= n)].to_parquet(out / "overture_buildings.parquet")
@@ -334,7 +359,7 @@ def prepare_tile(tid: str, force: bool = False) -> dict:
         split_block(tid)
     work = normalise(sq, DATA_ROOT)
     if split:  # the block download stays; the per-tile copy is redundant once normalised
-        for name in ("osm.json", "overture_buildings.parquet"):
+        for name in ("osm.json", AEROWAY_FILE, "overture_buildings.parquet"):
             (raw / name).unlink(missing_ok=True)
     rep = json.loads((work / "report.json").read_text(encoding="utf-8"))
     data = {k: rep.get(k) for k in ("buildings_count", "footprint_sources", "height_sources", "height_confidence",
@@ -944,7 +969,7 @@ def cli(argv: list[str]) -> None:
     from . import batch
 
     p = argparse.ArgumentParser(prog="hitec-pipeline tiles")
-    p.add_argument("action", choices=["index", "status", "next", "run", "batch", "mark-stale", "publish"])
+    p.add_argument("action", choices=["index", "status", "next", "run", "batch", "mark-stale", "publish", "aeroway"])
     p.add_argument("tiles", nargs="*", help="tile ids (default: the next tiles outward)")
     p.add_argument("--count", type=int, default=24, help="batch: how many tiles")
     p.add_argument("--step", type=int, default=batch.DEFAULT_STEP,
@@ -952,6 +977,8 @@ def cli(argv: list[str]) -> None:
     p.add_argument("--workers", type=int, default=batch.DEFAULT_WORKERS, help="parallel worker processes")
     p.add_argument("--force", action="store_true", help="re-prepare data and re-render even if done")
     p.add_argument("--rerender", action="store_true", help="re-render done tiles without touching their data")
+    p.add_argument("--reprepare", action="store_true",
+                   help="re-cut and normalise done tiles from their block's existing download (no download), then re-render")
     a = p.parse_args(argv)
     idx = load_index()
     if a.action in ("index", "status"):
@@ -965,17 +992,25 @@ def cli(argv: list[str]) -> None:
             print("all city tiles done")
             return
         parts = [tids] if a.action == "run" else batch.strips(tids, a.step)
-        if (left := batch.interrupted()) and not (a.force or a.rerender):  # finish a stopped batch first
+        if (left := batch.interrupted()) and not (a.force or a.rerender or a.reprepare):  # finish a stopped batch first
             parts = [left] + [q for q in ([t for t in part if t not in left] for part in parts) if q]
         ok = True
         for i, part in enumerate(parts, 1):
             if len(parts) > 1:
                 print(f"--- part {i}/{len(parts)}: {len(part)} tiles", flush=True)
-            ok = batch.run_batch(part, workers=a.workers, force=a.force, rerender=a.rerender) and ok
+            ok = batch.run_batch(part, workers=a.workers, force=a.force, rerender=a.rerender, reprepare=a.reprepare) and ok
         print(status_table(load_index()))
         raise SystemExit(0 if ok else 1)
     elif a.action == "publish":
         print(json.dumps(publish(idx, global_projection()), indent=1))
+    elif a.action == "aeroway":
+        # Supplement the blocks of the given tiles with runways/taxiways/aprons and list the tiles they touch;
+        # then run `tiles batch <those tiles> --reprepare`.
+        if not a.tiles:
+            raise SystemExit("aeroway needs tile ids (any tile in each block to supplement)")
+        for b in sorted({block_of(t) for t in a.tiles}):
+            fetch_block_aeroway(b)
+            print(f"block {b}: tiles with aeroways:", " ".join(aeroway_tiles(b)))
     elif a.action == "mark-stale":
         if not a.tiles:
             raise SystemExit("mark-stale needs tile ids")
