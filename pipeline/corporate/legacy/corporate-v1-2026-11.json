@@ -1,0 +1,101 @@
+{
+ "generated_at": "2026-11-19T20:33:06+00:00",
+ "dataset": "pixelhyd_hyderabad_corporate_seed_dataset.json",
+ "attribution": "Company records: Pixelhyd research (sources per record). Footprints and names: © OpenStreetMap contributors (ODbL).",
+ "sites": [
+  {
+   "id": "microsoft_india_development_center",
+   "status": "confirmed",
+   "match": "campus",
+   "match_note": "The OSM campus polygon is named Microsoft and tagged with the source page (website=https://www.microsoft.com/en-in/msidc/); the office buildings inside it are named Microsoft Building 1-4 in OSM. Campus confirmed by Microsoft's own page; which building is the record's Building 3 candidate comes from OSM naming.",
+   "company_name": "Microsoft",
+   "brand_or_entity": "Microsoft India Development Center (IDC)",
+   "sector": "Technology / Software / R&D",
+   "campus_or_property": "Microsoft Hyderabad Campus",
+   "building_name": "Building 3 (candidate specific building); campus has 3 buildings",
+   "address": "ISB Road, Gachibowli, Hyderabad, Telangana 500032, India",
+   "city_area": "Gachibowli",
+   "association_type": "campus_and_named_building_candidate",
+   "evidence_level": "strong_campus; building candidate",
+   "verification_status": "needs_polygon_match_and_current_tenant_confirmation",
+   "source_note": "Microsoft's official page describes a 54-acre Hyderabad campus consisting of three buildings. A separate business listing identifies Microsoft Building 3 on ISB Road; confirm its exact footprint before attaching the company to that polygon.",
+   "last_checked": "2026-11-19",
+   "sources": [
+    "https://www.microsoft.com/en-in/msidc/hyderabad-campus",
+    "https://www.hmda.gov.in/wp-content/uploads/2020/07/Kokapet.pdf"
+   ],
+   "campus": {
+    "osm_id": "w159299918",
+    "name": "Microsoft"
+   },
+   "buildings": [
+    {
+     "id": "c7b24dd9-2886-464d-9fa5-b0cbf811f718",
+     "osm_id": "w543748700",
+     "name": "Microsoft Building 1",
+     "lat": 17.432551,
+     "lon": 78.343696
+    },
+    {
+     "id": "e5e8c906-fa08-43a6-8771-875f32085fa0",
+     "osm_id": "w543748701",
+     "name": "Microsoft Building 2",
+     "lat": 17.431547,
+     "lon": 78.343182
+    },
+    {
+     "id": "327349fa-c319-462c-8306-b8435665e405",
+     "osm_id": "w543748702",
+     "name": "Microsoft Building 3",
+     "lat": 17.429555,
+     "lon": 78.340862
+    },
+    {
+     "id": "aadfbabd-2342-4b02-b896-2de2dbb5898e",
+     "osm_id": "w1344037686",
+     "name": "Microsoft Building 4",
+     "lat": 17.433331,
+     "lon": 78.343673
+    }
+   ],
+   "lat": 17.430769,
+   "lon": 78.34214
+  },
+  {
+   "id": "wells_fargo_divyasree_orion",
+   "status": "unverified",
+   "match": "building",
+   "match_note": "An OSM building in Raidurg is named Wells Fargo Tower 4 (office=it), inside a commercial area named Wells Fargo. The record places Wells Fargo at the Divyasree Orion campus, but no OSM polygon is named Divyasree Orion, so the building and the record are not yet tied together. Needs the company's official address.",
+   "company_name": "Wells Fargo",
+   "brand_or_entity": "Wells Fargo India Solutions",
+   "sector": "Banking / Financial services / Technology",
+   "campus_or_property": "Divyasree Orion SEZ",
+   "building_name": "Campus identified; exact tower not confirmed",
+   "address": "Divyasree Orion SEZ, Raidurgam / Gachibowli, Hyderabad, Telangana, India",
+   "city_area": "Raidurg / Gachibowli",
+   "association_type": "campus_only",
+   "evidence_level": "moderate; location listing",
+   "verification_status": "needs_official_tenant_confirmation_exact_address_and_polygon_match",
+   "source_note": "Search result identifies Wells Fargo India Solutions at Divyasree Orion campus. Verify the current address and exact tower with company or property-owner sources before publishing.",
+   "last_checked": "2026-11-19",
+   "sources": [
+    "https://www.nsearchives.nseindia.com/corporate/MINDSPACE_24072025083436_AcquisitionofQCity.pdf"
+   ],
+   "campus": {
+    "osm_id": "w1409668579",
+    "name": "Wells Fargo"
+   },
+   "buildings": [
+    {
+     "id": "080abb3d-d2a5-4f21-8c28-62019e2d8099",
+     "osm_id": "w1299545984",
+     "name": "Wells Fargo Tower 4",
+     "lat": 17.424946,
+     "lon": 78.377472
+    }
+   ],
+   "lat": 17.424963,
+   "lon": 78.377514
+  }
+ ]
+}

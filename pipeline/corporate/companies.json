@@ -1,0 +1,87 @@
+{
+ "_about": "Companies (who). One per company; offices are in sites.json. Migrated from the 2026-11-19 research seed (docs/corporate-model-plan.md).",
+ "schema_version": 2,
+ "companies": [
+  {
+   "id": "microsoft",
+   "name": "Microsoft",
+   "aliases": [
+    "Microsoft India Development Center (IDC)"
+   ],
+   "sector": "Technology / Software / R&D",
+   "notes": null
+  },
+  {
+   "id": "google",
+   "name": "Google",
+   "aliases": [
+    "Google Hyderabad"
+   ],
+   "sector": "Technology / Software / R&D",
+   "notes": null
+  },
+  {
+   "id": "amazon",
+   "name": "Amazon",
+   "aliases": [
+    "Amazon Development Centre India Pvt Ltd"
+   ],
+   "sector": "Technology / E-commerce / Cloud",
+   "notes": null
+  },
+  {
+   "id": "cognizant",
+   "name": "Cognizant",
+   "aliases": [
+    "Cognizant Technology Solutions"
+   ],
+   "sector": "IT services / Consulting",
+   "notes": null
+  },
+  {
+   "id": "cyient",
+   "name": "Cyient",
+   "aliases": [
+    "Cyient Limited"
+   ],
+   "sector": "Engineering / Technology / R&D",
+   "notes": null
+  },
+  {
+   "id": "deloitte",
+   "name": "Deloitte",
+   "aliases": [
+    "Deloitte Hyderabad"
+   ],
+   "sector": "Professional services / Consulting",
+   "notes": null
+  },
+  {
+   "id": "wells-fargo",
+   "name": "Wells Fargo",
+   "aliases": [
+    "Wells Fargo India Solutions"
+   ],
+   "sector": "Banking / Financial services / Technology",
+   "notes": null
+  },
+  {
+   "id": "jpmorgan-chase",
+   "name": "JPMorgan Chase",
+   "aliases": [
+    "J.P. Morgan Hyderabad"
+   ],
+   "sector": "Banking / Financial services / Technology",
+   "notes": null
+  },
+  {
+   "id": "ey",
+   "name": "EY",
+   "aliases": [
+    "EY Hyderabad"
+   ],
+   "sector": "Professional services / Consulting",
+   "notes": null
+  }
+ ]
+}
