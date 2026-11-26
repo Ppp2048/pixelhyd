@@ -54,7 +54,9 @@ const commute = indexCommute({
   societies: { 'pg-zolo-test': { minutes: btoa(String.fromCharCode(12)), hm: btoa(String.fromCharCode(40, 0)), gates: 1 } },
 } as CommuteFile)
 const [wlon, wlat] = utmToWgs(219125, 1928125)
-const ctx: PgContext = { pgs: indexPgs(data, commute), hoods: data.neighbourhoods, workplace: { lon: wlon, lat: wlat } }
+// A fixed day, so verdicts don't change as page checks age: 6 days after the confirmed PG's check.
+const NOW = new Date('2026-11-26T00:00:00Z')
+const ctx: PgContext = { pgs: indexPgs(data, commute), hoods: data.neighbourhoods, workplace: { lon: wlon, lat: wlat }, now: NOW }
 
 const prefs = (p: Partial<Preferences>): Preferences => ({ ...NO_PREFERENCES, show: 'pgs', ...p })
 const checks = (x: Pg, p: Partial<Preferences>) => assessPg(x, prefs(p), ctx).checks.map((c) => [c.pref, c.verdict])
@@ -133,5 +135,42 @@ describe('PG drive, area and ordering', () => {
       ['pg-stanza-living-x-house', 'unknown'],
     ])
     expect(isPg(all[0])).toBe(true)
+  })
+})
+
+describe('age of the page check', () => {
+  const at = (iso: string): PgContext => ({ ...ctx, now: new Date(iso) })
+  const fresh = pg('pg-fresh', { ...monthly, id: 'pg-fresh', checked: '2026-11-20', services: { wifi: { value: true, source: PAGE } } })
+  const all = (when: string) =>
+    assessPg(fresh, prefs({ budget: 9000, sharing: ['double'], gender: ['women'], services: ['wifi'], confirmed: true }), at(when))
+  const pagePrefs = ['budget', 'sharing', 'gender', 'service', 'listing']
+
+  it('keeps page facts as read while the check is recent', () => {
+    const a = all('2026-11-26T00:00:00Z')
+    expect(a.verdict).toBe('match')
+    expect(a.checks.some((c) => c.why.includes('was checked'))).toBe(false)
+  })
+
+  it('makes a page match only likely once the check is dated, and says how old it is', () => {
+    const a = all('2027-03-01T00:00:00Z') // 101 days
+    expect(a.verdict).toBe('likely')
+    const rent = a.checks.find((c) => c.pref === 'budget')!
+    expect(rent.verdict).toBe('likely')
+    expect(rent.why).toContain("The operator's page was checked 101 days ago (2026-11-20); it may have changed since.")
+    expect(a.checks.filter((c) => pagePrefs.includes(c.pref)).every((c) => c.verdict === 'likely')).toBe(true)
+  })
+
+  it('cannot decide page facts from a check over a year old', () => {
+    const a = all('2028-01-01T00:00:00Z')
+    expect(a.checks.filter((c) => pagePrefs.includes(c.pref)).map((c) => c.verdict)).toEqual(Array(5).fill('unknown'))
+    // An over-budget price from that old page no longer hides the PG either.
+    expect(assessPg(fresh, prefs({ budget: 5000 }), at('2028-01-01T00:00:00Z')).checks[0].verdict).toBe('unknown')
+  })
+
+  it('leaves facts that are not from a page alone', () => {
+    const old = at('2028-01-01T00:00:00Z')
+    expect(assessPg({ ...named, checked: '2026-11-20' }, prefs({ gender: ['men'] }), old).checks[0].verdict).toBe('likely')
+    expect(assessPg({ ...stanza, checked: '2026-11-20' }, prefs({ confirmed: true }), old).checks[0].verdict).toBe('no')
+    expect(assessPg(pg('pg-shut', { status: 'closed', checked: '2026-11-20' }), prefs({}), old).verdict).toBe('no')
   })
 })

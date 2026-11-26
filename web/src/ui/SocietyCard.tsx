@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { bhkOf, distance, formatBhk, MAX_COMPARE, type Assessment, type Homes, type Society } from '../lib/homes'
+import { useState, type ReactNode } from 'react'
+import { bhkOf, distance, formatBhk, MAX_COMPARE, rentAgeNote, type Assessment, type Homes, type Society } from '../lib/homes'
 import type { Workplace } from '../lib/homesUrl'
 import { host, osmUrl } from '../lib/places'
 import { BackIcon, CompareIcon, ExternalIcon } from './icons'
@@ -47,6 +47,8 @@ export function SocietyCard({ assessment, homes, workplace, compareAt, comparing
   const f = s.facts
   const hood = data.neighbourhoods.find((h) => h.id === s.neighbourhood)?.name
   const bench = data.benchmarks.find((b) => b.neighbourhood === s.neighbourhood)
+  const [now] = useState(() => new Date()) // today, once per card
+  const rentNote = bench ? rentAgeNote(bench, now) : null
   const bhk = bhkOf(s)
   const rooms = s.configurations.filter((c) => c.bedrooms_ft?.length)
   const sources = sourcesOf(s)
@@ -97,6 +99,7 @@ export function SocietyCard({ assessment, homes, workplace, compareAt, comparing
               <div className="muted small">
                 {bench.publisher}, {bench.period}. An area average, not this society's rent.
               </div>
+              {rentNote ? <div className="caution small">{rentNote}</div> : null}
             </>
           ) : (
             'No published rent'
