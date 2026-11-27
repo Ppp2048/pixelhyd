@@ -1,6 +1,6 @@
 # Company and office-site data model — plan
 
-Status: **design approved 2026-11-27. B1–B4 implemented 2026-11-27 (not committed):** `corporate_model.py`
+Status: **design approved 2026-11-27. B1–B4 implemented 2026-11-27 and merged into `main` in PR #3:** `corporate_model.py`
 (structures, confidence, validation), `corporate_migrate.py` (migration; report in
 `pipeline/corporate/migration-report.md`), and `corporate.py` now builds from `companies.json` / `sites.json` /
 `leads.json`. The rebuilt `corporate.json` matched the previous file in every v1 field (only `generated_at`

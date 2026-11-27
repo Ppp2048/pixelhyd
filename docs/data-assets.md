@@ -48,8 +48,10 @@ is reproducible from the pipeline and is kept out of git (`.gitignore`: `data/`,
 
 ## Where the current published data lives
 
-Only on the development laptop (and, once deployed, in the Cloudflare Pages deployment; see
-[deploy.md](deploy.md)). The archives in use are `art.20261126150257681436.pmtiles` and
-`overlay.20261126150426904530.pmtiles`. A lost laptop means a full rebuild. Options for later (not
+Only on the development laptop. The archives in use there are `art.20261126150257681436.pmtiles` and
+`overlay.20261126150426904530.pmtiles`. The live site ([deploy.md](deploy.md)) holds the copy from its last
+manual deploy: on 2026-11-27 that was the 2026-11-19 build (tiles `overlay.20261119210012115819`, a v1
+`corporate.json`), so it does not have later changes such as the airport or the v2 company fields. The
+Cloudflare deployment is not a backup: it holds chunk files and built data, not the inputs. A lost laptop means a full rebuild. Options for later (not
 adopted; each needs a decision): keep the small JSON outputs in git, or attach a data snapshot to a
 GitHub release.

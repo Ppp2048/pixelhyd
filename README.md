@@ -13,7 +13,7 @@ No satellite imagery, no hand-placed sprites, no third-party map art.
 ![Coverage](https://img.shields.io/badge/coverage-2%2C392_km%C2%B2-f4a261?style=flat-square)
 ![Zoom](https://img.shields.io/badge/zoom-9%E2%80%9320-457b9d?style=flat-square)
 ![Home search](https://img.shields.io/badge/home_search-in_progress-e9c46a?style=flat-square)
-![Deploy](https://img.shields.io/badge/deploy-not_yet-lightgrey?style=flat-square)
+[![Live](https://img.shields.io/badge/live-pixelhyd.pages.dev-f38020?style=flat-square&logo=cloudflare&logoColor=white)](https://pixelhyd.pages.dev)
 <br>
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
 ![MapLibre](https://img.shields.io/badge/MapLibre_GL-6-396CB2?style=flat-square&logo=maplibre&logoColor=white)
@@ -112,7 +112,7 @@ Names come from OpenStreetMap and Overture places. Built by `hitec-pipeline plac
   </tr>
 </table>
 
-- **Company sites.** A company appears on the map only when its record can be tied to real OSM buildings. The seed has 10 companies. Two have sites today:
+- **Company sites.** A company appears on the map only when its record can be tied to real OSM buildings by name. The research holds 9 companies with 9 office sites and 5 unpublished leads. Two sites are on the map today:
   - Microsoft, **Confirmed**: its campus and 4 named buildings.
   - Wells Fargo, **Unverified**: one named tower, not yet tied to the record's address.
 - **Building cards.** Click any building to see what is known about it, including where its height comes from: verified, derived, modelled or estimated.
@@ -128,7 +128,7 @@ Names come from OpenStreetMap and Overture places. Built by `hitec-pipeline plac
 ## Home search (in progress)
 
 > [!NOTE]
-> Home search was merged into `main` in [PR #1](https://github.com/Ppp2048/pixelhyd/pull/1) and keeps developing on **`feature/residential-discovery`**. Turning it off gives back the plain map, pixel for pixel.
+> Home search was merged into `main` in [PR #1](https://github.com/Ppp2048/pixelhyd/pull/1); later work arrived in [PR #3](https://github.com/Ppp2048/pixelhyd/pull/3). Turning it off gives back the plain map, pixel for pixel.
 
 Pick where you work. Pixelhyd then checks the homes around it against your preferences and lights them up on the map, with a reason for every verdict.
 
@@ -211,11 +211,15 @@ gitGraph
   commit id: "Home search: societies and PGs"
   checkout main
   merge feature/residential-discovery id: "PR #1"
+  checkout feature/residential-discovery
+  commit id: "Airport, rent freshness, company model"
+  checkout main
+  merge feature/residential-discovery id: "PR #3"
 ```
 
 | Branch | What it is |
 |---|---|
-| **`main`** | The working app: the whole city, dusk and day looks, search, company sites, building cards, the visit counter, and home search since PR #1. |
+| **`main`** | The working app: the whole city, dusk and day looks, search, company sites, building cards, the visit counter, home search (PR #1), and the airport, rent freshness and company data model (PR #3). |
 | **`feature/residential-discovery`** | Where home search, company offices and map fixes are developed before they reach `main`. |
 | commit **`87e5715`** | The map-only checkpoint from before home search. You can return to it at any time. |
 
@@ -372,15 +376,15 @@ cd web && npm run build               # type check + production build
 
 <br>
 
-Pixelhyd is **not deployed yet**. The plan is in [docs/deploy.md](docs/deploy.md):
+Pixelhyd is live at **[pixelhyd.pages.dev](https://pixelhyd.pages.dev)**. Deploys are made by hand with wrangler; nothing deploys automatically when `main` changes, so the live site can be behind `main`. The steps are in [docs/deploy.md](docs/deploy.md):
 
 | Part | Where |
 |---|---|
-| The site | Cloudflare Pages |
-| The map tiles (about 3 GB) | Cloudflare R2 |
+| The site and its data files | Cloudflare Pages |
+| The map tiles (about 3 GB) | Cloudflare Pages, cut into 256 KiB chunk files (`hitec-pipeline deploy`) |
 | The visit counter (`/api/visits`) | A Pages Function with a D1 database |
 
-As an alternative, `npm run build && npm start` runs one Node server with the counter in SQLite.
+As alternatives, `npm run build:deploy && npm start` runs one Node server with the counter in SQLite, and a bucket that answers range requests (such as R2) can serve the archives whole.
 
 </details>
 
@@ -393,7 +397,7 @@ As an alternative, `npm run build && npm start` runs one Node server with the co
 | **OpenStreetMap**, via Overpass (snapshot 2026-11-15) | Roads, rail and metro, building names, levels and heights, places, neighbourhoods | ODbL |
 | **Overture Maps** (release 2026-10-21) | Building footprints, places for search, PG listings and nearby places | ODbL (buildings), CDLA-Permissive-2.0 (places) |
 | **Operators' own pages** | PG rents, sharing and services, read only where the operator's terms allow it | The operator's terms; each fact links its page |
-| **This project's research** | Company seed, society details, neighbourhoods, area rent averages | Cited per record |
+| **This project's research** | Company offices, society details, neighbourhoods, area rent averages | Cited per record |
 
 Principles the code and the interface follow:
 
@@ -414,12 +418,13 @@ Principles the code and the interface follow:
 |---|---|
 | [`pipeline/`](pipeline) | Python (uv) pipeline, run as `hitec-pipeline` |
 | [`pipeline/src/hitec_pipeline/`](pipeline/src/hitec_pipeline) | Modules: `fetch`, `normalise`, `iso`, `render`, `tiles` and `batch` for the map; `places` and `corporate` for search; `residential`, `pgs`, `commute` and `amenities` for home search |
-| [`pipeline/corporate/`](pipeline/corporate) | Company seed and building matches |
+| [`pipeline/corporate/`](pipeline/corporate) | Company research: `companies.json`, `sites.json`, `leads.json`, and the original seed and v1 files in `legacy/` |
+| [`pipeline/residential/`](pipeline/residential) | Home-search research: societies and PGs |
 | [`web/src/map/`](web/src/map) | MapLibre view, image-space projection, the dusk look (`duskCore`, workers) |
 | [`web/src/ui/`](web/src/ui) | Search, cards, settings, home search panel, comparison |
 | [`web/src/lib/`](web/src/lib) | Projection, search and verdict logic, URL state |
 | [`web/functions/`](web/functions), [`web/server/`](web/server) | The visit counter, on Cloudflare Pages Functions or Node |
-| [`docs/`](docs) | Implementation plan, prototype report, deploy guide, README images |
+| [`docs/`](docs) | Deploy guide, data guide, plans and reports, README images ([index](docs/README.md)) |
 | `data/` | Downloaded and generated data, not committed |
 
 ---
