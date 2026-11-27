@@ -56,8 +56,11 @@ AREA_FILL: dict[str, RGB] = {
     "natural:bare_rock": hex_rgb("#b7aa96"),
     "natural:grassland": hex_rgb("#a9b866"),
     "amenity:parking": hex_rgb("#b8b1a3"),
+    "aeroway:apron": hex_rgb("#aaa79f"),  # = APRON
+    "aeroway:taxiway": hex_rgb("#676b70"),  # = TAXIWAY
+    "aeroway:runway": hex_rgb("#575b61"),  # = RUNWAY
 }
-AREA_ORDER = ["landuse", "natural", "leisure", "amenity"]  # drawn bottom → top
+AREA_ORDER = ["landuse", "natural", "leisure", "amenity", "aeroway"]  # drawn bottom → top
 
 # ---------------------------------------------------------------- roads
 ASPHALT = hex_rgb("#5d6168")
@@ -67,6 +70,19 @@ PAVING = hex_rgb("#c7b593")
 TRACK = hex_rgb("#b39b75")
 ROAD_FILL = {"footway": PAVING, "path": PAVING, "pedestrian": PAVING, "steps": PAVING, "cycleway": PAVING, "track": TRACK}
 MARKED_CLASSES = {"motorway", "trunk", "primary", "secondary", "tertiary"}
+
+# ---------------------------------------------------------------- airports
+# Airside paving from OSM aeroway=runway/taxiway/apron, drawn over land use and under roads.
+# Their own colours (not road asphalt), so the dusk look treats them as plain paving without street life.
+RUNWAY = hex_rgb("#575b61")
+TAXIWAY = hex_rgb("#676b70")
+APRON = hex_rgb("#aaa79f")
+RUNWAY_MARK = hex_rgb("#e6e3da")
+AEROWAY_FILL = {"apron": APRON, "taxiway": TAXIWAY, "runway": RUNWAY}  # drawn in this order, bottom → top
+# Width when OSM has no width tag: ICAO Annex 14 minimums for the largest aircraft (runway code
+# number 3–4: 45 m; taxiway code letter E: 23 m). Estimated, recorded as such per feature.
+AEROWAY_WIDTH_M = {"runway": 45.0, "taxiway": 23.0}
+RUNWAY_DASH_M, RUNWAY_GAP_M, RUNWAY_MARK_W_M = 30.0, 20.0, 0.9  # ICAO centreline stripes
 
 # ---------------------------------------------------------------- buildings
 # (base wall colour, roof colour) families; picked per building from its id.

@@ -87,7 +87,9 @@ const at = (col: number, row: number, de = 125, dn = 125) => {
 }
 
 const commute = indexCommute(commuteFile)
-const ctx = (workplace = at(2, 0)): Context => ({ data, commute, workplace })
+// A fixed day, so verdicts don't change as the benchmark (Q2 2025) ages: 11 months after it, still current.
+const NOW = new Date('2026-06-01T00:00:00Z')
+const ctx = (workplace = at(2, 0), now = NOW): Context => ({ data, commute, workplace, now })
 const prefs = (p: Partial<Preferences>): Preferences => ({ ...NO_PREFERENCES, ...p })
 const check = (s: Society, p: Partial<Preferences>, c = ctx()) => {
   const checks = assess(s, prefs(p), c).checks
@@ -166,6 +168,24 @@ describe('budget', () => {
     const threeBhk = assess(researched, prefs({ budget: 90000, bhk: [3] }), ctx()).checks[0]
     expect(threeBhk.verdict).toBe('unknown')
     expect(assess(researched, prefs({ budget: 90000, bhk: [2, 3] }), ctx()).checks[0].verdict).toBe('likely')
+  })
+
+  it('says how old a dated benchmark is, and keeps a fit at likely', () => {
+    const current = check(researched, { budget: 40000 })
+    expect(current.why).not.toContain('months old')
+    const dated = check(researched, { budget: 40000 }, ctx(at(2, 0), new Date('2026-11-26T00:00:00Z')))
+    expect(dated.verdict).toBe('likely')
+    expect(dated.why).toContain('The figure is for Q2 2025, 16 months old; rents may have changed since.')
+  })
+
+  it('is unknown when the benchmark is too old or undated to decide a budget', () => {
+    const old = check(researched, { budget: 40000 }, ctx(at(2, 0), new Date('2027-08-01T00:00:00Z'))) // 25 months
+    expect(old.verdict).toBe('unknown')
+    expect(old.why).toContain('too old to decide a budget')
+    const undated = { ...data, benchmarks: data.benchmarks.map((b) => ({ ...b, period: 'recently' })) }
+    const u = assess(researched, prefs({ budget: 40000 }), { data: undated, commute, workplace: at(2, 0), now: NOW }).checks[0]
+    expect(u.verdict).toBe('unknown')
+    expect(u.why).toContain('date (recently) is unclear')
   })
 })
 

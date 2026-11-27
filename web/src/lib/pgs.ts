@@ -11,6 +11,10 @@
  *   services  included is a match, "not included" is "no", unstated is unknown
  *   listing   (confirmed only) confirmed is a match, anything else "no"
  * Drive, neighbourhood, nearby places and metro use the societies' rules.
+ *
+ * Facts read from an operator's page age with the day the page was checked (freshness.ts): after
+ * PG_DATED_DAYS a "match" from the page is only "likely"; after PG_EXPIRED_DAYS the page can't decide
+ * those checks ("unknown"). A gender read from the listing's name and a closure are not page facts.
  */
 import {
   commuteCheck,
@@ -35,6 +39,7 @@ import {
   type Station,
   type Verdict,
 } from './homes'
+import { ageText, pgCheckAge } from './freshness'
 
 export type PgStatus = 'confirmed' | 'probable' | 'unverified' | 'closed'
 
@@ -167,6 +172,8 @@ export interface PgContext {
   /** Every neighbourhood name: the societies' and the PGs' own. */
   hoods: Neighbourhood[]
   workplace: LonLat | null
+  /** Today, for the age of page checks (default: the clock). */
+  now?: Date
 }
 
 export const GENDER_TEXT: Record<Gender, string> = { men: "Men's", women: "Women's", mixed: 'Men and women' }
@@ -253,6 +260,33 @@ function listingCheck(p: Pg, prefs: Preferences, data: PgData): Check | null {
     : check('no', `Not confirmed on the operator's page. ${data.statuses[p.status]}`)
 }
 
+/** Whether a check rests on what the operator's page said (and so ages with the page check). */
+function fromPage(c: Check, p: Pg): boolean {
+  if (c.pref === 'gender') return p.gender?.from === 'page' || p.gender?.from === 'link'
+  if (c.pref === 'listing') return p.status === 'confirmed' // "not confirmed" is not a page fact
+  return c.pref === 'budget' || c.pref === 'sharing' || c.pref === 'service'
+}
+
+/** How old the PG's page check is, in words, or null while it is recent or was never made. */
+export function pgAgeNote(p: Pg, now: Date): string | null {
+  const age = pgCheckAge(p.checked, now)
+  if (!age || age.freshness === 'current') return null
+  const when = `The operator's page was checked ${ageText(age.days, 'day')} (${p.checked})`
+  return age.freshness === 'dated' ? `${when}; it may have changed since.` : `${when}, too long ago to decide this.`
+}
+
+/** Page facts lose weight with the age of the page check: dated → a match is only likely; expired → unknown. */
+function aged(checks: Check[], p: Pg, now: Date): Check[] {
+  const age = pgCheckAge(p.checked, now)
+  const note = pgAgeNote(p, now)
+  if (!age || !note) return checks
+  return checks.map((c) => {
+    if (!fromPage(c, p) || c.verdict === 'unknown') return c
+    if (age.freshness === 'expired') return { ...c, verdict: 'unknown', why: `${c.why} ${note}` }
+    return c.verdict === 'match' ? { ...c, verdict: 'likely', why: `${c.why} ${note}` } : { ...c, why: `${c.why} ${note}` }
+  })
+}
+
 export function assessPg(p: Pg, prefs: Preferences, ctx: PgContext): PgAssessment {
   const { data, commute, operators: ops } = ctx.pgs
   const drive = commute && ctx.workplace ? commute.drive(p.id, ctx.workplace) : null
@@ -266,7 +300,8 @@ export function assessPg(p: Pg, prefs: Preferences, ctx: PgContext): PgAssessmen
     neighbourhoodCheck(p.neighbourhood, prefs, ctx.hoods),
     ...nearbyChecks(p, prefs, data.amenities.radius_m),
   ].filter((c): c is Check => c !== null)
-  return { pg: p, verdict: worst(checks.map((c) => c.verdict)), checks, drive }
+  const final = aged(checks, p, ctx.now ?? new Date())
+  return { pg: p, verdict: worst(final.map((c) => c.verdict)), checks: final, drive }
 }
 
 export function assessAllPgs(prefs: Preferences, ctx: PgContext): PgAssessment[] {

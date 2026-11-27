@@ -10,6 +10,7 @@
  * A society's overall verdict is its weakest check.
  */
 import { wgsToUtm } from './projection'
+import { ageText, rentAge } from './freshness'
 
 // ---------------------------------------------------------------- data files
 
@@ -337,12 +338,14 @@ export interface Context {
   data: ResidentialData
   commute: Commute | null
   workplace: LonLat | null
+  /** Today, for the age of published figures (default: the clock). */
+  now?: Date
 }
 
 export function assess(s: Society, prefs: Preferences, ctx: Context): Assessment {
   const drive = ctx.commute && ctx.workplace ? ctx.commute.drive(s.id, ctx.workplace) : null
   const checks = [
-    budgetCheck(s, prefs, ctx.data),
+    budgetCheck(s, prefs, ctx.data, ctx.now ?? new Date()),
     bhkCheck(s, prefs),
     furnishingCheck(prefs),
     commuteCheck(prefs, ctx.workplace, drive),
@@ -386,8 +389,22 @@ export function bhkOf(s: Society): number[] {
 
 const wants = (pref: number[], bhk: number) => pref.some((p) => (p >= 4 ? bhk >= 4 : Math.floor(bhk) === p))
 
-/** Rent is only published per area, so a budget can at best make a society "likely", never "no". */
-function budgetCheck(s: Society, prefs: Preferences, data: ResidentialData): Check | null {
+/** How old an area rent figure is, in words, or null while it is current (see freshness.ts). */
+export function rentAgeNote(b: RentBenchmark, now: Date): string | null {
+  const { freshness, months } = rentAge(b.period, now)
+  if (freshness === 'current') return null
+  if (months === null) return `The figure's date (${b.period}) is unclear, so it can't decide a budget.`
+  const old = `The figure is for ${b.period}, ${ageText(months, 'month')} old`
+  return freshness === 'dated'
+    ? `${old}; rents may have changed since.`
+    : `${old}, too old to decide a budget.`
+}
+
+/**
+ * Rent is only published per area, so a budget can at best make a society "likely", never "no". A figure
+ * older than a year (freshness.RENT_DATED_MONTHS) is marked; one too old (or undated) can't decide a budget at all.
+ */
+function budgetCheck(s: Society, prefs: Preferences, data: ResidentialData, now: Date): Check | null {
   if (prefs.budget === null) return null
   const check = (verdict: Verdict, why: string, source?: string): Check => ({ pref: 'budget', verdict, why, source })
   const b = data.benchmarks.find((x) => x.neighbourhood === s.neighbourhood)
@@ -396,11 +413,14 @@ function budgetCheck(s: Society, prefs: Preferences, data: ResidentialData): Che
     `${b.area} averages ${rupees(b.rent_month)} a month for a ${b.size_sqft.toLocaleString('en-IN')} sq ft ` +
     `${b.bhk}BHK (${b.publisher}, ${b.period})`
   const own = "This society's rents aren't published."
+  const age = rentAgeNote(b, now)
+  const aged = age ? ` ${age}` : ''
   if (prefs.bhk.length && !wants(prefs.bhk, b.bhk))
-    return check('unknown', `${average}; no rent is published for the BHK you chose.`, b.source)
+    return check('unknown', `${average}; no rent is published for the BHK you chose.${aged}`, b.source)
+  if (rentAge(b.period, now).freshness === 'expired') return check('unknown', `${average}. ${own}${aged}`, b.source)
   return prefs.budget >= b.rent_month
-    ? check('likely', `${average}, within your budget. ${own}`, b.source)
-    : check('unknown', `${average}, above your ${rupees(prefs.budget)}. ${own}`, b.source)
+    ? check('likely', `${average}, within your budget. ${own}${aged}`, b.source)
+    : check('unknown', `${average}, above your ${rupees(prefs.budget)}. ${own}${aged}`, b.source)
 }
 
 function bhkCheck(s: Society, prefs: Preferences): Check | null {

@@ -30,6 +30,7 @@ import { SearchBox } from './ui/SearchBox'
 import { SettingsPanel } from './ui/SettingsPanel'
 import { VisitCounter } from './ui/VisitCounter'
 import { CloseIcon } from './ui/icons'
+import { PanelBoundary } from './ui/PanelBoundary'
 import { DATASETS, type BuildingProps, type CorporateSite, type DatasetMeta } from './types'
 
 /**
@@ -362,6 +363,11 @@ export default function App() {
   }, [settingsOpen, homesMode])
 
   const cardOpen = !!selection && (!!selection.building || !!selection.place || sites.length > 0)
+  // What the side panel shows; a failure in one panel is cleared when it shows something else.
+  const panelKey = homesMode
+    ? `homes:${homesMode.society ?? ''}`
+    : `card:${selection?.building?.id ?? ''}:${selection?.place?.id ?? ''}:${selection?.siteId ?? ''}`
+  const closePanel = () => (homesMode ? setHomesMode(null) : setSelection(null))
   const slotOpen = cardOpen || homesOn
 
   return (
@@ -404,6 +410,7 @@ export default function App() {
         <SearchBox corporate={corporate} onPick={pick} />
       </header>
 
+      <PanelBoundary resetKey={panelKey} onClose={closePanel}>
       {homesMode ? (
         openPg && pgs ? (
           <PgCard
@@ -445,9 +452,11 @@ export default function App() {
       ) : cardOpen ? (
         <Inspector building={selection!.building} place={selection!.place ?? null} sites={sites} onClose={() => setSelection(null)} onFindHomes={findHomes} />
       ) : null}
+      </PanelBoundary>
 
       {comparing && homes ? (
         <div className="compare-wrap">
+          <PanelBoundary resetKey={compareIds.join(',')} onClose={() => setCompare([])}>
           <CompareStrip
             compared={compared}
             homes={homes}
@@ -466,6 +475,7 @@ export default function App() {
             onClear={() => setCompare([])}
             onHeight={setStripHeight}
           />
+          </PanelBoundary>
         </div>
       ) : null}
 

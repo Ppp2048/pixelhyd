@@ -1,8 +1,9 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { distance, MAX_COMPARE, type Neighbourhood, type Service } from '../lib/homes'
 import type { Workplace } from '../lib/homesUrl'
 import { host } from '../lib/places'
-import { GENDER_TEXT, genderFrom, SERVICE_TEXT, type PgAssessment, type PgHomes, type PgRent, type PgStatus } from '../lib/pgs'
+import { GENDER_TEXT, genderFrom, pgAgeNote, SERVICE_TEXT, type PgAssessment, type PgHomes, type PgRent, type PgStatus } from '../lib/pgs'
+import { ageText, pgCheckAge } from '../lib/freshness'
 import { BackIcon, CompareIcon, ExternalIcon } from './icons'
 import { checkLabel, rupees, VERDICT_TEXT } from './homesText'
 
@@ -55,6 +56,9 @@ export function PgCard({ assessment, pgs, hoods, workplace, compareAt, comparing
   const excluded = services.filter(([k]) => p.services[k]?.value === false).map(([, v]) => v)
   const unstated = services.filter(([k]) => !p.services[k]).map(([, v]) => v)
   const loc = p.location
+  const [now] = useState(() => new Date()) // today, once per card
+  const age = pgCheckAge(p.checked, now)
+  const checkedWhen = p.checked ? `${p.checked}${age ? ` (${ageText(age.days, 'day')})` : ''}` : null
   const cautions = [
     p.page_gone ? `${op?.name ?? 'The operator'}'s page no longer lists it (checked ${p.page_gone}). It may have closed.` : null,
     loc.from === 'overture' && !loc.listings_agree
@@ -62,6 +66,7 @@ export function PgCard({ assessment, pgs, hoods, workplace, compareAt, comparing
       : null,
     p.status === 'unverified' && !p.page_gone ? 'Known only from an open-data listing. Nothing about its rooms has been checked.' : null,
     p.status === 'closed' ? data.statuses.closed : null,
+    pgAgeNote(p, now),
   ].filter((c): c is string => !!c)
   const sources = [...new Set([p.page, p.address?.source, p.deposit?.source, ...p.rent.map((r) => r.source)].filter((u): u is string => !!u))]
 
@@ -119,7 +124,7 @@ export function PgCard({ assessment, pgs, hoods, workplace, compareAt, comparing
               ))}
               <div className="muted small">
                 {rooms.some((r) => r.period === null) ? 'The page gives no period. ' : ''}Starting prices as published
-                {p.checked ? `, ${p.checked}` : ''}; not an offer.
+                {checkedWhen ? `, checked ${checkedWhen}` : ''}; not an offer.
               </div>
             </>
           ) : unread ? (
@@ -206,7 +211,7 @@ export function PgCard({ assessment, pgs, hoods, workplace, compareAt, comparing
         {p.note ? <p>{p.note}</p> : null}
         <p className="muted small">
           {data.statuses[p.status]}
-          {p.checked ? ` Checked ${p.checked}.` : ''} Location:{' '}
+          {checkedWhen ? ` Checked ${checkedWhen}.` : ''} Location:{' '}
           {loc.from === 'overture' ? `Overture Maps listing${loc.listings > 1 ? `s (${loc.listings})` : ''}` : 'as cited'}. Nearby places from
           OpenStreetMap and Overture.
         </p>

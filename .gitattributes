@@ -1,0 +1,2 @@
+# Research archives are kept byte for byte (their SHA-256 is checked): no line-ending conversion.
+pipeline/corporate/legacy/** -text

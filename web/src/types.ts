@@ -87,11 +87,45 @@ export interface CorporateSite {
   /** Where to fly to: the campus or first building (WGS84, ground level). */
   lat: number
   lon: number
+  // schema_version 2 additions (docs/corporate-model-plan.md §5). Optional: v1 files lack them, the app does not use them yet.
+  /** The company this office belongs to (CorporateData.companies). */
+  company_id?: string
+  /** Is the company at this property, graded by its evidence. */
+  presence?: 'confirmed' | 'probable' | 'unverified' | 'closed'
+  footprint_basis?: 'campus' | 'building'
+  /** Computed by the pipeline from presence, footprint and age; never entered by hand. */
+  confidence?: 'high' | 'medium' | 'low' | null
+  operational_status?: { value: 'active' | 'under_construction' | 'closed' | 'unknown'; as_of: string }
+  /** Every source; `supports: []` marks a context-only source that backs no claim. */
+  evidence?: CorporateEvidence[]
+  /** Last checked more than 12 months ago. */
+  stale?: boolean
+}
+
+export interface CorporateEvidence {
+  url: string
+  type: 'official' | 'annual_report' | 'regulatory' | 'property_owner' | 'press' | 'listing' | 'osm' | 'third_party'
+  publisher: string | null
+  retrieved: string
+  supports: ('presence' | 'address' | 'building' | 'status')[]
+  note: string | null
+}
+
+export interface CorporateCompany {
+  id: string
+  name: string
+  aliases: string[]
+  sector: string | null
+  /** Its published site ids. */
+  sites: string[]
 }
 
 export interface CorporateData {
   generated_at: string
   dataset: string
   attribution: string
+  schema_version?: 2
+  /** Companies with at least one published site (schema_version 2). */
+  companies?: CorporateCompany[]
   sites: CorporateSite[]
 }

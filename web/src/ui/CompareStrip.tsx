@@ -4,6 +4,7 @@ import { cheapestRoom, GENDER_TEXT, genderFrom, idOf, isPg, nameOf, type Found, 
 import { ChevronDownIcon, CloseIcon, CompareIcon, ExtentIcon } from './icons'
 import { rupees, VERDICT_TEXT } from './homesText'
 import { STATUS_CHIP } from './PgCard'
+import { rentAge } from '../lib/freshness'
 
 interface Props {
   /** The compared homes, in marker order (1, 2, 3). */
@@ -70,6 +71,7 @@ export function CompareStrip({ compared, homes, pgs, prefs, onLit, onShowRow, on
     }
   }, [onHeight, onLit])
 
+  const [now] = useState(() => new Date()) // today, once per strip
   const benches = compared.map((a) => (isPg(a) ? undefined : data.benchmarks.find((b) => b.neighbourhood === a.society.neighbourhood)))
   const cols = compared.length
   // With a PG among them, rows for both kinds; societies alone keep their own rows.
@@ -280,7 +282,8 @@ export function CompareStrip({ compared, homes, pgs, prefs, onLit, onShowRow, on
                       ? row('Area rent', (_, i) => {
                           const b = benches[i]
                           if (!b) return <Value main="Not published" missing />
-                          return <Value main={rupees(b.rent_month)} sub={`${b.bhk}BHK area average${fits(b.rent_month)}`} />
+                          const dated = rentAge(b.period, now).freshness === 'current' ? '' : ` · ${b.period}, dated`
+                          return <Value main={rupees(b.rent_month)} sub={`${b.bhk}BHK area average${fits(b.rent_month)}${dated}`} />
                         })
                       : null}
                     {row('BHK', (a) => {

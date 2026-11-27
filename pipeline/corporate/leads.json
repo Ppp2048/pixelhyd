@@ -1,0 +1,88 @@
+{
+ "_about": "Unpublished research leads: candidate sites and property inventories. Never published (docs/corporate-model-plan.md).",
+ "schema_version": 2,
+ "leads": [
+  {
+   "id": "avance_business_hub_building_inventory",
+   "kind": "property_inventory",
+   "company_id": null,
+   "osm": [],
+   "found": "2026-11-19",
+   "why_not_a_site": "Building inventory with no company. No OSM footprint is named aVance or any of its building names (Rover, Atlas, Kepler, Astro).",
+   "source": "pipeline/corporate/legacy/seed-2026-11-19.json row avance_business_hub_building_inventory; matches.json reason",
+   "seed_record": {
+    "company_id": "avance_business_hub_building_inventory",
+    "company_name": "",
+    "brand_or_entity": "aVance Business Hub property inventory (not a tenant)",
+    "sector": "Business park / IT-SEZ real estate",
+    "campus_or_property": "aVance Business Hub",
+    "building_name": "H01A Rover; H06 Atlas; H06A Kepler; H08 Astro; H03",
+    "address": "Survey Nos. 30(P), 34(P), 35(P), 38(P), Gachibowli, Serilingampally, Hyderabad, Telangana 500081, India",
+    "city_area": "Gachibowli",
+    "association_type": "property_building_inventory",
+    "evidence_level": "strong; property owner/developer page",
+    "verification_status": "building_names_confirmed; match_each_to_map_polygon",
+    "source_url": "https://www.capitaland.com/en/find-a-property/global-property-listing/businesspark-industrial-logistics/avance-hitec-cityhyderabad.html",
+    "supporting_source_url": "",
+    "source_note": "CapitaLand lists five buildings and their names/floors. This is a building inventory, not evidence that any particular company occupies each listed building.",
+    "building_osm_id": "",
+    "building_overture_id": "",
+    "latitude": "",
+    "longitude": "",
+    "last_checked": "2026-11-19"
+   }
+  },
+  {
+   "id": "lead-amazon-financial-district",
+   "kind": "candidate_site",
+   "company_id": "amazon",
+   "osm": [
+    {
+     "osm_id": "w782009439"
+    }
+   ],
+   "found": "2026-11-19",
+   "why_not_a_site": "No OSM footprint is named aVance 6 or Phoenix SEZ. OSM names an Amazon campus in the Financial District (way 782009439, buildings 342031390 and 859668203), which is not the record's aVance 6 site.",
+   "source": "pipeline/corporate/legacy/matches-2026-11.json reason for amazon_development_centre_hyderabad"
+  },
+  {
+   "id": "lead-google-financial-district",
+   "kind": "candidate_site",
+   "company_id": "google",
+   "osm": [
+    {
+     "osm_id": "w1247721916"
+    }
+   ],
+   "found": "2026-11-19",
+   "why_not_a_site": "No OSM footprint is named DivyaSree Omega or Block 1. OSM has a Google Hyderabad building under construction in the Financial District (way 1247721916), which is a different site from the record's Kothaguda address.",
+   "source": "pipeline/corporate/legacy/matches-2026-11.json reason for google_hyderabad"
+  },
+  {
+   "id": "lead-cognizant-financial-district",
+   "kind": "candidate_site",
+   "company_id": "cognizant",
+   "osm": [
+    {
+     "osm_id": "w342243558"
+    }
+   ],
+   "found": "2026-11-19",
+   "why_not_a_site": "No OSM footprint is named Mindspace or Building 12A. OSM names a Cognizant Technologies building in the Financial District (way 342243558), not at Raheja Mindspace, Madhapur.",
+   "source": "pipeline/corporate/legacy/matches-2026-11.json reason for cognizant_mindspace_hyderabad"
+  },
+  {
+   "id": "lead-cyient-financial-district",
+   "kind": "candidate_site",
+   "company_id": "cyient",
+   "osm": [
+    {
+     "osm_id": "w879132633"
+    }
+   ],
+   "found": "2026-11-19",
+   "why_not_a_site": "No OSM footprint is named Infocity or Software Units Layout. OSM names a Cyient commercial area in the Financial District (way 879132633), not the registered office address in Madhapur.",
+   "source": "pipeline/corporate/legacy/matches-2026-11.json reason for cyient_infocity_madhapur"
+  }
+ ]
+}

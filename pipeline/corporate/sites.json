@@ -1,0 +1,408 @@
+{
+ "_about": "Office sites (where): place, map footprint, presence and evidence. Confidence is computed by the build, never stored. Replaces matches.json (docs/corporate-model-plan.md).",
+ "schema_version": 2,
+ "sites": [
+  {
+   "id": "microsoft_india_development_center",
+   "company_id": "microsoft",
+   "entity": "Microsoft India Development Center (IDC)",
+   "property": "Microsoft Hyderabad Campus",
+   "building_name": "Building 3 (candidate specific building); campus has 3 buildings",
+   "address": "ISB Road, Gachibowli, Hyderabad, Telangana 500032, India",
+   "city_area": "Gachibowli",
+   "association_type": "campus_and_named_building_candidate",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "confirmed",
+   "footprint": {
+    "basis": "campus",
+    "campus": {
+     "osm_id": "w159299918",
+     "expect_name": "Microsoft"
+    },
+    "buildings": [
+     {
+      "osm_id": "w543748700",
+      "expect_name": "Microsoft Building 1"
+     },
+     {
+      "osm_id": "w543748701",
+      "expect_name": "Microsoft Building 2"
+     },
+     {
+      "osm_id": "w543748702",
+      "expect_name": "Microsoft Building 3"
+     },
+     {
+      "osm_id": "w1344037686",
+      "expect_name": "Microsoft Building 4"
+     }
+    ],
+    "note": "The OSM campus polygon is named Microsoft and tagged with the source page (website=https://www.microsoft.com/en-in/msidc/); the office buildings inside it are named Microsoft Building 1-4 in OSM. Campus confirmed by Microsoft's own page; which building is the record's Building 3 candidate comes from OSM naming."
+   },
+   "evidence": [
+    {
+     "url": "https://www.microsoft.com/en-in/msidc/hyderabad-campus",
+     "type": "official",
+     "publisher": "Microsoft",
+     "retrieved": "2026-11-19",
+     "supports": [
+      "presence"
+     ],
+     "note": "Microsoft's own page describes its Hyderabad campus (seed source_note)."
+    },
+    {
+     "url": "https://www.hmda.gov.in/wp-content/uploads/2020/07/Kokapet.pdf",
+     "type": "regulatory",
+     "publisher": "Hyderabad Metropolitan Development Authority (HMDA)",
+     "retrieved": "2026-11-19",
+     "supports": [],
+     "note": "Context only: the seed does not say what this document states about this site."
+    }
+   ],
+   "evidence_summary": "strong_campus; building candidate",
+   "source_note": "Microsoft's official page describes a 54-acre Hyderabad campus consisting of three buildings. A separate business listing identifies Microsoft Building 3 on ISB Road; confirm its exact footprint before attaching the company to that polygon.",
+   "legacy": {
+    "verification_status": "needs_polygon_match_and_current_tenant_confirmation",
+    "matches_status": "confirmed"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  },
+  {
+   "id": "google_hyderabad",
+   "company_id": "google",
+   "entity": "Google Hyderabad",
+   "property": "DivyaSree Omega",
+   "building_name": "Block 1",
+   "address": "Block 1, DivyaSree Omega, Survey No. 13, Kothaguda, Telangana 500084, India",
+   "city_area": "Kothaguda / Kondapur",
+   "association_type": "named_block_candidate",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "unverified",
+   "footprint": {
+    "basis": "none",
+    "note": "No OSM footprint is named DivyaSree Omega or Block 1. OSM has a Google Hyderabad building under construction in the Financial District (way 1247721916), which is a different site from the record's Kothaguda address."
+   },
+   "evidence": [
+    {
+     "url": "https://www.hmda.gov.in/wp-content/uploads/2020/07/Kokapet.pdf",
+     "type": "regulatory",
+     "publisher": "Hyderabad Metropolitan Development Authority (HMDA)",
+     "retrieved": "2026-11-19",
+     "supports": [],
+     "note": "Context only: names Google among Hyderabad's IT/ITeS companies, not at this address (seed source_note)."
+    }
+   ],
+   "evidence_summary": "moderate; address-level business listing",
+   "source_note": "HMDA identifies Google among Hyderabad's IT/ITeS companies and describes its Hyderabad campus. A business listing places Google Hyderabad at Block 1, DivyaSree Omega; verify current occupancy and exact footprint.",
+   "legacy": {
+    "verification_status": "needs_official_address_crosscheck_and_polygon_match",
+    "matches_status": "needs_manual_verification"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  },
+  {
+   "id": "amazon_development_centre_hyderabad",
+   "company_id": "amazon",
+   "entity": "Amazon Development Centre India Pvt Ltd",
+   "property": "aVance 6 / Phoenix SEZ",
+   "building_name": "aVance 6",
+   "address": "Phoenix SEZ Access Road, Phase 2, HITEC City, Hyderabad, Telangana 500081, India",
+   "city_area": "HITEC City / Raidurg",
+   "association_type": "named_building_candidate",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "unverified",
+   "footprint": {
+    "basis": "none",
+    "note": "No OSM footprint is named aVance 6 or Phoenix SEZ. OSM names an Amazon campus in the Financial District (way 782009439, buildings 342031390 and 859668203), which is not the record's aVance 6 site."
+   },
+   "evidence": [
+    {
+     "url": "https://www.capitaland.com/en/about-capitaland/newsroom/news-releases/international/2021/feb/a-iTrust-entered-definitive-agreements-proposed-acquisition-aVance-6-Hyderabad.html",
+     "type": "property_owner",
+     "publisher": "CapitaLand",
+     "retrieved": "2026-11-19",
+     "supports": [
+      "presence"
+     ],
+     "note": "Reported aVance 6 about 98.3% leased to Amazon in 2021; current occupancy unconfirmed (seed source_note)."
+    },
+    {
+     "url": "https://www.capitaland.com/en/find-a-property/global-property-listing/businesspark-industrial-logistics/avance-hitec-cityhyderabad.html",
+     "type": "property_owner",
+     "publisher": "CapitaLand",
+     "retrieved": "2026-11-19",
+     "supports": [],
+     "note": "Context only: the property listing; the seed takes the address from a separate business listing and does not say this page names aVance 6."
+    }
+   ],
+   "evidence_summary": "strong historical lease evidence; current occupancy needs refresh",
+   "source_note": "CapitaLand reported approximately 98.3% of aVance 6 leased to Amazon in 2021. A business listing gives the Phoenix SEZ Access Road address. Confirm current tenant status before publishing as current.",
+   "legacy": {
+    "verification_status": "needs_current_tenant_confirmation_and_polygon_match",
+    "matches_status": "needs_manual_verification"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  },
+  {
+   "id": "cognizant_mindspace_hyderabad",
+   "company_id": "cognizant",
+   "entity": "Cognizant Technology Solutions",
+   "property": "Raheja Mindspace IT Park",
+   "building_name": "Building 12A (Cognizant Building)",
+   "address": "Raheja Mindspace, Mindspace Madhapur Road, HUDA Techno Enclave, HITEC City, Madhapur, Hyderabad, Telangana 500081, India",
+   "city_area": "Madhapur / HITEC City",
+   "association_type": "named_building_candidate",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "unverified",
+   "footprint": {
+    "basis": "none",
+    "note": "No OSM footprint is named Mindspace or Building 12A. OSM names a Cognizant Technologies building in the Financial District (way 342243558), not at Raheja Mindspace, Madhapur."
+   },
+   "evidence": [
+    {
+     "url": "https://www.mindspaceindia.com/madhapur/",
+     "type": "property_owner",
+     "publisher": "Mindspace",
+     "retrieved": "2026-11-19",
+     "supports": [
+      "building"
+     ],
+     "note": "Confirms the Mindspace campus, not Cognizant as a tenant (seed source_note)."
+    }
+   ],
+   "evidence_summary": "moderate; building-specific business listing",
+   "source_note": "A business listing identifies Cognizant in Raheja Mindspace Building 12A. Mindspace's official page confirms the campus. Confirm the current tenant/building assignment before publishing.",
+   "legacy": {
+    "verification_status": "needs_official_tenant_confirmation_and_polygon_match",
+    "matches_status": "needs_manual_verification"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  },
+  {
+   "id": "cyient_infocity_madhapur",
+   "company_id": "cyient",
+   "entity": "Cyient Limited",
+   "property": "Software Units Layout / Infocity",
+   "building_name": "A Wing, 4th Floor, 11 (registered office address; floor-level not map footprint)",
+   "address": "4th Floor, A Wing, 11, Software Units Layout, Infocity, Madhapur, Hyderabad, Telangana 500081, India",
+   "city_area": "Madhapur",
+   "association_type": "campus_address_only",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "unverified",
+   "footprint": {
+    "basis": "none",
+    "note": "No OSM footprint is named Infocity or Software Units Layout. OSM names a Cyient commercial area in the Financial District (way 879132633), not the registered office address in Madhapur."
+   },
+   "evidence": [
+    {
+     "url": "https://www.cyient.com/hubfs/2027/Investors/Financial-Information/annual-report/35th%20Annual%20Report%20FY%202025-26.pdf",
+     "type": "annual_report",
+     "publisher": "Cyient",
+     "retrieved": "2026-11-19",
+     "supports": [
+      "presence",
+      "address"
+     ],
+     "note": "Lists this address as Cyient's registered office (seed source_note)."
+    }
+   ],
+   "evidence_summary": "strong; company annual report",
+   "source_note": "Cyient annual report lists this as its registered office. Match the address to the correct Infocity building polygon; do not use floor as a separate building.",
+   "legacy": {
+    "verification_status": "address_supported; exact building_polygon_match_required",
+    "matches_status": "needs_manual_verification"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  },
+  {
+   "id": "deloitte_meenakshi_techpark",
+   "company_id": "deloitte",
+   "entity": "Deloitte Hyderabad",
+   "property": "Meenakshi Tech Park",
+   "building_name": "Deloitte Towers (tower number not confirmed)",
+   "address": "Meenakshi Tech Park, Phase 2, HITEC City / Gachibowli, Hyderabad, Telangana 500032, India",
+   "city_area": "Gachibowli / Financial District edge",
+   "association_type": "campus_or_tower_candidate",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "unverified",
+   "footprint": {
+    "basis": "none",
+    "note": "No OSM footprint is named Meenakshi Tech Park or Deloitte. The nearest named property, Meenakshi Technova (way 342032577), is a different name; the exact tower is also unconfirmed in the record."
+   },
+   "evidence": [
+    {
+     "url": "https://www.hmda.gov.in/wp-content/uploads/2020/07/Kokapet.pdf",
+     "type": "regulatory",
+     "publisher": "Hyderabad Metropolitan Development Authority (HMDA)",
+     "retrieved": "2026-11-19",
+     "supports": [],
+     "note": "Context only: lists Deloitte among Hyderabad services-sector companies, not at this address (seed source_note)."
+    }
+   ],
+   "evidence_summary": "moderate; office listing and campus references",
+   "source_note": "HMDA lists Deloitte among Hyderabad services-sector companies. A business listing identifies Deloitte Meenakshi Towers in Phase 2 HITEC City. Exact tower/polygon should be confirmed before tagging.",
+   "legacy": {
+    "verification_status": "needs_exact_tower_address_and_polygon_match",
+    "matches_status": "needs_manual_verification"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  },
+  {
+   "id": "wells_fargo_divyasree_orion",
+   "company_id": "wells-fargo",
+   "entity": "Wells Fargo India Solutions",
+   "property": "Divyasree Orion SEZ",
+   "building_name": "Campus identified; exact tower not confirmed",
+   "address": "Divyasree Orion SEZ, Raidurgam / Gachibowli, Hyderabad, Telangana, India",
+   "city_area": "Raidurg / Gachibowli",
+   "association_type": "campus_only",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "unverified",
+   "footprint": {
+    "basis": "building",
+    "campus": {
+     "osm_id": "w1409668579",
+     "expect_name": "Wells Fargo"
+    },
+    "buildings": [
+     {
+      "osm_id": "w1299545984",
+      "expect_name": "Wells Fargo Tower 4"
+     }
+    ],
+    "note": "An OSM building in Raidurg is named Wells Fargo Tower 4 (office=it), inside a commercial area named Wells Fargo. The record places Wells Fargo at the Divyasree Orion campus, but no OSM polygon is named Divyasree Orion, so the building and the record are not yet tied together. Needs the company's official address."
+   },
+   "evidence": [
+    {
+     "url": "https://www.nsearchives.nseindia.com/corporate/MINDSPACE_24072025083436_AcquisitionofQCity.pdf",
+     "type": "regulatory",
+     "publisher": "National Stock Exchange of India (NSE)",
+     "retrieved": "2026-11-19",
+     "supports": [],
+     "note": "Context only: the seed's location claim comes from a search result; it does not say what this filing states about Wells Fargo."
+    }
+   ],
+   "evidence_summary": "moderate; location listing",
+   "source_note": "Search result identifies Wells Fargo India Solutions at Divyasree Orion campus. Verify the current address and exact tower with company or property-owner sources before publishing.",
+   "legacy": {
+    "verification_status": "needs_official_tenant_confirmation_exact_address_and_polygon_match",
+    "matches_status": "unverified"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  },
+  {
+   "id": "jpmorgan_sattva_knowledge_city",
+   "company_id": "jpmorgan-chase",
+   "entity": "J.P. Morgan Hyderabad",
+   "property": "Salarpuria Sattva Knowledge City",
+   "building_name": "JP Morgan Towers (specific tower/parcel needs confirmation)",
+   "address": "Salarpuria Sattva Knowledge City, Silpa Gram Craft Village, HITEC City, Hyderabad, Telangana 500081, India",
+   "city_area": "Raidurg / HITEC City",
+   "association_type": "campus_candidate",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "unverified",
+   "footprint": {
+    "basis": "none",
+    "note": "No OSM footprint is named Sattva Knowledge City. OSM has Salapuria Sattva Knowledge Park Tower 2 (way 1133460475), a different name; the record's source is a third-party directory."
+   },
+   "evidence": [
+    {
+     "url": "https://hyderabadoffices.blogspot.com/",
+     "type": "third_party",
+     "publisher": null,
+     "retrieved": "2026-11-19",
+     "supports": [
+      "presence"
+     ],
+     "note": "A third-party office directory names JP Morgan Towers at Sattva Knowledge City (seed source_note)."
+    },
+    {
+     "url": "https://www.mindspaceindia.com/clients/",
+     "type": "property_owner",
+     "publisher": "Mindspace",
+     "retrieved": "2026-11-19",
+     "supports": [],
+     "note": "Context only: JPMorganChase on Mindspace's Hyderabad client roster; the building relationship is unverified (seed source_note)."
+    }
+   ],
+   "evidence_summary": "moderate; third-party address listing",
+   "source_note": "A third-party Hyderabad office directory identifies JP Morgan Towers at Sattva Knowledge City. Mindspace's client page shows JPMorganChase in its Hyderabad client roster, but the exact building relationship needs verification.",
+   "legacy": {
+    "verification_status": "needs_official_tenant_confirmation_and_polygon_match",
+    "matches_status": "needs_manual_verification"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  },
+  {
+   "id": "ey_skyview_10",
+   "company_id": "ey",
+   "entity": "EY Hyderabad",
+   "property": "The Skyview",
+   "building_name": "The Skyview 10",
+   "address": "The Skyview 10, Survey No. 83/1, Raidurg, Hyderabad, Telangana 500032, India",
+   "city_area": "Raidurg / Knowledge City",
+   "association_type": "named_building_candidate",
+   "operational_status": {
+    "value": "unknown",
+    "as_of": "2026-11-19"
+   },
+   "presence": "unverified",
+   "footprint": {
+    "basis": "none",
+    "note": "The record itself says the address is the auditor's, not evidence that EY occupies The Skyview 10 (research lead only). No OSM footprint is named Skyview."
+   },
+   "evidence": [
+    {
+     "url": "https://www.cyient.com/hubfs/2027/Investors/Financial-Information/annual-report/35th%20Annual%20Report%20FY%202025-26.pdf",
+     "type": "annual_report",
+     "publisher": "Cyient",
+     "retrieved": "2026-11-19",
+     "supports": [
+      "address"
+     ],
+     "note": "Gives The Skyview 10 as the address of Cyient's statutory auditor; not evidence that EY occupies it (seed source_note)."
+    }
+   ],
+   "evidence_summary": "moderate; company annual-report address for audit firm, not necessarily EY tenant evidence",
+   "source_note": "Cyient annual report gives The Skyview 10 as the address of its statutory auditor, not proof that EY occupies it. Do not tag EY here until independently confirmed. Included as a research lead only.",
+   "legacy": {
+    "verification_status": "needs_current_EY_tenant_confirmation_and_polygon_match",
+    "matches_status": "needs_manual_verification"
+   },
+   "last_checked": "2026-11-19",
+   "history": []
+  }
+ ]
+}

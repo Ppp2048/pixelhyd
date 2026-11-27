@@ -87,11 +87,14 @@ def _begin(plan: dict) -> bool:
     return same
 
 
-def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = False, rerender: bool = False) -> bool:
+def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = False, rerender: bool = False,
+              reprepare: bool = False) -> bool:
+    """`reprepare`: cut and normalise the tiles again from their blocks' existing downloads (never
+    re-downloading, unlike `force`), then render; for new inputs such as the aeroway supplement."""
     idx = T.load_index()
     for t in tids:
         T.ensure_tile(idx, t)
-    if not (force or rerender):
+    if not (force or rerender or reprepare):
         skipped = [t for t in tids if idx["tiles"][t]["status"] == "validated"]
         if skipped:
             _log(f"already validated, skipped: {' '.join(skipped)} (use --force or --rerender)")
@@ -103,7 +106,7 @@ def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = Fal
     T.save_index(idx)
     proj = T.global_projection()
     T.migrate_archives()
-    resumed = _begin({"tids": sorted(tids), "force": force, "rerender": rerender})
+    resumed = _begin({"tids": sorted(tids), "force": force, "rerender": rerender, "reprepare": reprepare})
     timing: dict[str, float] = {}
     started = time.perf_counter()
     failed: dict[str, str] = {}
@@ -112,7 +115,7 @@ def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = Fal
     with ProcessPoolExecutor(max_workers=workers) as pool:
         # 1. data
         t0 = time.perf_counter()
-        need = [] if rerender else [t for t in tids if force or not T._features(t).exists()]
+        need = [] if rerender else [t for t in tids if force or reprepare or not T._features(t).exists()]
         own_raw = {t for t in need if not force and T.has_raw(T._raw(T.tile_square(t).name))}
         for b in sorted({T.block_of(t) for t in need if t not in own_raw}):
             bt = time.perf_counter()
@@ -123,7 +126,7 @@ def run_batch(tids: list[str], workers: int = DEFAULT_WORKERS, force: bool = Fal
                 for t in need:
                     if T.block_of(t) == b:
                         failed[t] = f"fetch: {exc}"
-        futures = {pool.submit(T.prepare_tile, t, force): t for t in need if t not in failed}
+        futures = {pool.submit(T.prepare_tile, t, force or reprepare): t for t in need if t not in failed}
         for f in as_completed(futures):
             t = futures[f]
             try:

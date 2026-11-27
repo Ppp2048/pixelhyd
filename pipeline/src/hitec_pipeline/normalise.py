@@ -1,7 +1,7 @@
 """Turn raw downloads into clean, projected feature layers.
 
 Output: data/work/<area>/features.gpkg (EPSG:32644, metres) with layers
-`buildings`, `roads`, `rail`, `areas`, `pois`, plus report.json.
+`buildings`, `roads`, `rail`, `areas`, `pois`, `aeroway`, plus report.json.
 
 Rules:
 - Overture is the single footprint source (it already conflates OSM and ML
@@ -25,6 +25,7 @@ from shapely.geometry import LineString, MultiPolygon, Point, Polygon
 from shapely.ops import polygonize, unary_union
 
 from .area import UTM44N, Area
+from .style import AEROWAY_WIDTH_M
 
 # ---------------------------------------------------------------- heights
 FLOOR_HEIGHT = {"residential": 3.2, "apartments": 3.2, "house": 3.2, "office": 3.8, "commercial": 3.8}
@@ -95,6 +96,35 @@ def road_width(tags: dict) -> tuple[float, str]:
 
 # ---------------------------------------------------------------- OSM parsing
 AREA_KEYS = ("landuse", "leisure", "natural", "amenity")
+AEROWAY_LINES = ("runway", "taxiway")  # paved strips: centrelines buffered by width
+AEROWAY_AREAS = ("apron", "runway", "taxiway")  # mapped as areas (apron always; strips with area=yes)
+AEROWAY_FILE = "osm_aeroway.json"  # supplementary download (fetch.fetch_aeroway), merged when present
+
+
+def aeroway_width(tags: dict) -> tuple[float, str]:
+    """Paved width of a runway or taxiway: the OSM width tag, else an ICAO minimum (estimated)."""
+    w = _parse_float(tags.get("width"))
+    if w and 5 <= w <= 100:
+        return w, "osm_width"
+    return AEROWAY_WIDTH_M[tags["aeroway"]], "estimated_icao_minimum"
+
+
+def _aeroway_row(el: dict, tags: dict, oid: str, geom, rows: dict) -> bool:
+    """Runways and taxiways as lines (a closed taxiway loop stays a line); aprons and area=yes strips as areas."""
+    kind = tags.get("aeroway")
+    if kind not in AEROWAY_AREAS:
+        return False
+    as_area = kind == "apron" or tags.get("area") == "yes"
+    if as_area:
+        if isinstance(geom, Polygon | MultiPolygon):
+            rows["areas"].append({"osm_id": oid, "kind": f"aeroway:{kind}", "name": tags.get("ref") or tags.get("name"), "geometry": geom})
+        return True
+    line = geom.exterior if isinstance(geom, Polygon) else geom
+    if isinstance(line, LineString) and kind in AEROWAY_LINES:  # a LinearRing is a LineString
+        width, wsrc = aeroway_width(tags)
+        rows["aeroway"].append({"osm_id": oid, "aeroway": kind, "ref": tags.get("ref"), "width_m": width,
+                                "width_source": wsrc, "geometry": LineString(line.coords)})
+    return True
 
 
 def _way_geom(el: dict):
@@ -121,10 +151,18 @@ def _relation_geom(el: dict):
     return shape.difference(unary_union(holes)) if holes else shape
 
 
-def _osm_frames(osm_path: Path) -> dict[str, gpd.GeoDataFrame]:
+def _osm_frames(osm_path: Path, extra: list[Path] | None = None) -> dict[str, gpd.GeoDataFrame]:
+    """Frames from an OSM download, plus supplementary downloads (`extra`) whose elements it lacks."""
     data = json.loads(osm_path.read_text(encoding="utf-8"))
-    rows: dict[str, list] = {k: [] for k in ("building_tags", "roads", "rail", "areas", "pois")}
-    for el in data["elements"]:
+    elements = list(data["elements"])
+    seen = {(el["type"], el["id"]) for el in elements}
+    for path in extra or []:
+        for el in json.loads(path.read_text(encoding="utf-8"))["elements"]:
+            if (el["type"], el["id"]) not in seen:
+                seen.add((el["type"], el["id"]))
+                elements.append(el)
+    rows: dict[str, list] = {k: [] for k in ("building_tags", "roads", "rail", "areas", "pois", "aeroway")}
+    for el in elements:
         tags = el.get("tags", {})
         oid = f"{el['type'][0]}{el['id']}"
         if el["type"] == "node":
@@ -139,6 +177,8 @@ def _osm_frames(osm_path: Path) -> dict[str, gpd.GeoDataFrame]:
             continue
         if "building" in tags:
             rows["building_tags"].append({"osm_id": oid, "tags": json.dumps(tags, ensure_ascii=False)})
+        elif "aeroway" in tags and _aeroway_row(el, tags, oid, geom, rows):
+            pass
         elif "highway" in tags and isinstance(geom, LineString | Polygon):
             line = geom if isinstance(geom, LineString) else geom.exterior
             width, wsrc = road_width(tags)
@@ -244,7 +284,8 @@ def normalise(area: Area, data_root: Path) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     report: dict = {"area": area.name, "crs": UTM44N, "core_square_m": area.core, "fetch_square_m": area.fetch}
 
-    frames = _osm_frames(raw / "osm.json")
+    extra = [raw / AEROWAY_FILE] if (raw / AEROWAY_FILE).exists() else []
+    frames = _osm_frames(raw / "osm.json", extra)
     buildings = _buildings(raw / "overture_buildings.parquet", frames["building_tags"], report)
 
     fetch_box = Polygon.from_bounds(*area.fetch)
@@ -252,7 +293,7 @@ def normalise(area: Area, data_root: Path) -> Path:
     if out.exists():
         out.unlink()
     buildings.to_file(out, layer="buildings", driver="GPKG")
-    for name in ("roads", "rail", "areas", "pois"):
+    for name in ("roads", "rail", "areas", "pois", "aeroway"):
         gdf = frames[name]
         if gdf is None or gdf.empty:
             continue
@@ -267,6 +308,8 @@ def normalise(area: Area, data_root: Path) -> Path:
     report["osm_tag_joined"] = int(buildings["osm_id"].notna().sum())
     if frames["roads"] is not None:
         report["road_width_sources"] = frames["roads"]["width_source"].value_counts().to_dict()
+    if frames["aeroway"] is not None:
+        report["aeroway_width_sources"] = frames["aeroway"]["width_source"].value_counts().to_dict()
     manifest = raw / "manifest.json"
     report["inputs"] = json.loads(manifest.read_text(encoding="utf-8"))["downloads"] if manifest.exists() else []
     for d in report["inputs"]:

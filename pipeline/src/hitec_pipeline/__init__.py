@@ -16,6 +16,11 @@ def main() -> None:
 
         cli(sys.argv[2:])
         return
+    if sys.argv[1:3] == ["corporate", "migrate"]:  # retired one-off migration: prints how to edit the data instead
+        from .corporate_migrate import cli as migrate_cli
+
+        migrate_cli(sys.argv[3:])
+        return
     if len(sys.argv) > 1 and sys.argv[1] == "corporate":  # company-to-building links for the web app
         from .corporate import cli as corporate_cli
 

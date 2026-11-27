@@ -25,7 +25,7 @@ No satellite imagery, no hand-placed sprites, no third-party map art.
 
 <img src="docs/images/hero.webp" alt="Dusk view of HITEC City in isometric pixel art: glass office towers, apartment blocks, roads and small parks" width="100%">
 
-**[At a glance](#at-a-glance)** · **[The map](#the-map)** · **[Home search](#home-search-in-progress)** · **[Branches](#branches)** · **[How it works](#how-it-works)** · **[Run it](#run-it)** · **[Data and honesty](#data-and-honesty)** · **[Roadmap](#roadmap)**
+**[At a glance](#at-a-glance)** · **[The map](#the-map)** · **[Home search](#home-search-in-progress)** · **[Branches](#branches)** · **[How it works](#how-it-works)** · **[Run it](#run-it)** · **[Data and honesty](#data-and-honesty)**
 
 </div>
 
@@ -421,28 +421,6 @@ Principles the code and the interface follow:
 | [`web/functions/`](web/functions), [`web/server/`](web/server) | The visit counter, on Cloudflare Pages Functions or Node |
 | [`docs/`](docs) | Implementation plan, prototype report, deploy guide, README images |
 | `data/` | Downloaded and generated data, not committed |
-
----
-
-## Roadmap
-
-- [x] A 250 m prototype, from data through projection, art and PMTiles to the viewer
-- [x] The 5 km HITEC City square, then the whole city ring by ring: 2,392 tiles
-- [x] Dusk look
-- [x] Citywide search, company sites, building cards
-- [x] Anonymous visit counter (Node + SQLite or Cloudflare D1)
-- [x] Home search for societies: data, drive times, verdicts, map highlights, cards, comparison, phone layout
-- [x] Home search for PGs and co-living: 120 PGs, filters, cards and mixed comparison
-- [x] Home search merged into `main` (PR #1)
-- [ ] Company offices: a data-only pilot, then the interface design
-- [ ] Map accuracy fixes, re-rendering only the affected tiles:
-  - [ ] the Old City construction metro
-  - [ ] airports
-  - [ ] ground-level rail
-  - [ ] a flyover deck pilot
-- [ ] Deploy
-
-The detailed plan, with what has been verified and what is estimated, is in [docs/implementation-plan.md](docs/implementation-plan.md).
 
 ---
 

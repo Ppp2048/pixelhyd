@@ -240,7 +240,8 @@ def _area_stack(areas: gpd.GeoDataFrame | None, core: Polygon) -> list[tuple[str
     return stack
 
 
-def _trees(stack: list[tuple[str, Polygon]], pois: gpd.GeoDataFrame | None, core: Polygon, proj: IsoProjection, scene: Scene) -> None:
+def _trees(stack: list[tuple[str, Polygon]], pois: gpd.GeoDataFrame | None, core: Polygon, proj: IsoProjection, scene: Scene,
+           avoid=None) -> None:
     pts: list[tuple[float, float, str]] = []
     if pois is not None:
         for row in pois[pois["kind"] == "tree"].itertuples():
@@ -252,6 +253,8 @@ def _trees(stack: list[tuple[str, Polygon]], pois: gpd.GeoDataFrame | None, core
         # Trees only where this green area is still the visible ground: not on a pond,
         # rock, pitch or car park drawn over it.
         cover = [g for k, g in stack[i + 1:] if k not in GREEN and g.intersects(poly)]
+        if avoid is not None and avoid.intersects(poly):  # runways and taxiways
+            cover.append(avoid)
         if cover:
             poly = poly.difference(unary_union(cover))
             if poly.is_empty:
@@ -277,7 +280,7 @@ def _trees(stack: list[tuple[str, Polygon]], pois: gpd.GeoDataFrame | None, core
         scene.objects.append(Obj(e + n, f"t{key}", _bounds_px(proj, ring, 0, t.height + r), t))
 
 
-LAYERS = ("buildings", "roads", "rail", "areas", "pois")
+LAYERS = ("buildings", "roads", "rail", "areas", "pois", "aeroway")
 
 
 def read_layers(features: Path) -> dict[str, gpd.GeoDataFrame]:
@@ -317,6 +320,8 @@ def build_scene_from_layers(layers: dict, proj: IsoProjection, core, owns=None, 
         if kind in S.AREA_FILL:
             scene.ground.append((g, S.AREA_FILL[kind]))
 
+    airside = _aeroways(layers.get("aeroway"), core, scene)
+
     roads = layers.get("roads")
     if roads is not None:
         ground_roads = roads[~roads["bridge"].astype(bool) & ~roads["tunnel"].astype(bool)]
@@ -346,11 +351,37 @@ def build_scene_from_layers(layers: dict, proj: IsoProjection, core, owns=None, 
         _elevated(rail[rail["bridge"].astype(bool)], "rail", core, proj, scene, shadows, shadow_all)
 
     _buildings(buildings, core, proj, scene, shadows, owns, shadow_all)
-    _trees(stack, layers.get("pois"), core, proj, scene)
+    _trees(stack, layers.get("pois"), core, proj, scene, avoid=airside)
 
     scene.shadow = unary_union(shadows).intersection(core) if shadows else None
     scene.objects = order_objects(scene.objects)
     return scene
+
+
+def _aeroways(lines: gpd.GeoDataFrame | None, core, scene: Scene):
+    """Runways and taxiways from their OSM centrelines: over land use and aprons, under roads.
+    Taxiways first, so a runway crossing stays unbroken; runways get ICAO-style centreline stripes,
+    measured from each line's start so every chunk cuts the same stripes. Returns the paved
+    shape (no generated trees there), or None."""
+    if lines is None or lines.empty:
+        return None
+    paved = []
+    for kind in ("taxiway", "runway"):
+        sub = lines[lines["aeroway"] == kind]
+        if sub.empty:
+            continue
+        cap = "flat" if kind == "runway" else "round"
+        shape = unary_union([g.buffer(w / 2, cap_style=cap, join_style="round") for g, w in zip(sub.geometry, sub["width_m"])])
+        scene.ground.append((shape.intersection(core), S.AEROWAY_FILL[kind]))
+        paved.append(shape)
+    stripes = []
+    for line in lines[lines["aeroway"] == "runway"].geometry:
+        step = S.RUNWAY_DASH_M + S.RUNWAY_GAP_M
+        for s in np.arange(S.RUNWAY_GAP_M, line.length - S.RUNWAY_DASH_M - S.RUNWAY_GAP_M, step):
+            stripes.append(substring(line, s, s + S.RUNWAY_DASH_M).buffer(S.RUNWAY_MARK_W_M / 2, cap_style="flat"))
+    if stripes:
+        scene.ground.append((unary_union(stripes).intersection(core), S.RUNWAY_MARK))
+    return unary_union(paved) if paved else None
 
 
 # ---------------------------------------------------------------- draw order

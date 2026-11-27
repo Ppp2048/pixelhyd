@@ -98,6 +98,7 @@ def fetch_osm(area: Area, out_dir: Path, timeout: int = 180) -> Path:
   way[waterway]{bb};
   node[shop]{bb}; node[office]{bb}; way[office]{bb};
   way["man_made"]{bb};
+  way[aeroway~"^(runway|taxiway|apron)$"]{bb}; relation[aeroway=apron]{bb};
 );
 out geom qt;"""
     data = _overpass(query, timeout=timeout + 120)
@@ -112,6 +113,38 @@ out geom qt;"""
             "licence": "ODbL 1.0",
             "query": query,
             "osm_base": base,
+            "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "sha256": _sha256(out),
+            "bytes": out.stat().st_size,
+        },
+    )
+    return out
+
+
+def fetch_aeroway(area: Area, out_dir: Path, timeout: int = 180) -> Path:
+    """Runways, taxiways and aprons only, beside an existing osm.json (normalise merges them).
+
+    For downloads made before `fetch_osm` asked for aeroways: the airport gets its paving without
+    re-downloading, and so changing, everything else pinned in that osm.json.
+    """
+    west, south, east, north = area.wgs_bbox()
+    bb = f"({south:.6f},{west:.6f},{north:.6f},{east:.6f})"
+    query = f"""[out:json][timeout:{timeout}];
+(
+  way[aeroway~"^(runway|taxiway|apron)$"]{bb}; relation[aeroway=apron]{bb};
+);
+out geom qt;"""
+    data = _overpass(query, timeout=timeout + 120)
+    out = out_dir / "osm_aeroway.json"
+    out.write_bytes(data)
+    _record(
+        out_dir / "manifest.json",
+        {
+            "file": out.name,
+            "source": "OpenStreetMap contributors via Overpass API (aeroway supplement)",
+            "licence": "ODbL 1.0",
+            "query": query,
+            "osm_base": json.loads(data).get("osm3s", {}).get("timestamp_osm_base"),
             "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "sha256": _sha256(out),
             "bytes": out.stat().st_size,
