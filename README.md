@@ -376,7 +376,7 @@ cd web && npm run build               # type check + production build
 
 <br>
 
-Pixelhyd is live at **[pixelhyd.pages.dev](https://pixelhyd.pages.dev)**. Deploys are made by hand with wrangler; nothing deploys automatically when `main` changes, so the live site can be behind `main`. The steps are in [docs/deploy.md](docs/deploy.md):
+Pixelhyd is live at **[pixelhyd.pages.dev](https://pixelhyd.pages.dev)**. Deploys are made by hand with wrangler; nothing deploys automatically when `main` changes, so the live site can be behind `main`. It was last deployed on 2026-11-27 from `main` at `a1aefc9`. The steps are in [docs/deploy.md](docs/deploy.md):
 
 | Part | Where |
 |---|---|

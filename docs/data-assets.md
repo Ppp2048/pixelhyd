@@ -50,8 +50,8 @@ is reproducible from the pipeline and is kept out of git (`.gitignore`: `data/`,
 
 Only on the development laptop. The archives in use there are `art.20261126150257681436.pmtiles` and
 `overlay.20261126150426904530.pmtiles`. The live site ([deploy.md](deploy.md)) holds the copy from its last
-manual deploy: on 2026-11-27 that was the 2026-11-19 build (tiles `overlay.20261119210012115819`, a v1
-`corporate.json`), so it does not have later changes such as the airport or the v2 company fields. The
+manual deploy: on 2026-11-27, from `main` at `a1aefc9`, with these same archives (as chunk files) and the
+v2 `corporate.json`. Deploys are manual, so later changes reach it only when it is deployed again. The
 Cloudflare deployment is not a backup: it holds chunk files and built data, not the inputs. A lost laptop means a full rebuild. Options for later (not
 adopted; each needs a decision): keep the small JSON outputs in git, or attach a data snapshot to a
 GitHub release.
